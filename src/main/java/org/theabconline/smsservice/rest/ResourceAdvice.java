@@ -9,7 +9,7 @@ import java.io.IOException;
 @ControllerAdvice(basePackageClasses = SMSResource.class)
 public class ResourceAdvice {
 
-    @ExceptionHandler({IOException.class, RuntimeException.class, Exception.class})
+//    @ExceptionHandler({IOException.class, RuntimeException.class, Exception.class})
     public ResponseEntity errorHandler() {
         return ResponseEntity.badRequest().build();
     }
