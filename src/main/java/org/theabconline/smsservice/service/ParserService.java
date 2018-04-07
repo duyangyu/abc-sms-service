@@ -2,6 +2,8 @@ package org.theabconline.smsservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,8 @@ import java.util.Map;
 
 @Service
 public class ParserService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ParserService.class);
 
     private ObjectMapper mapper;
 
@@ -87,7 +91,7 @@ public class ParserService {
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
         JsonNode jsonTree = mapper.readTree(message);
-
+        LOGGER.debug("message: {}, path: {}, fieldName: {}", message, path, fieldName);
         return jsonTree.at(path).get(fieldName).textValue();
     }
 
