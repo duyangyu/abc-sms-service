@@ -1,5 +1,6 @@
 package org.theabconline.smsservice.service;
 
+import com.aliyuncs.exceptions.ClientException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,7 @@ public class SMSService {
         this.objectMapper = objectMapper;
     }
 
-    public void send(String message, String timestamp, String nonce, String sha1) throws IOException {
+    public void send(String message, String timestamp, String nonce, String sha1) throws IOException, ClientException {
         if (!validationService.isValid(message, timestamp, nonce, sha1)) {
             LOGGER.info("Invalid message");
             throw new RuntimeException("Message invalid");

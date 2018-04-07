@@ -1,5 +1,6 @@
 package org.theabconline.smsservice.rest;
 
+import com.aliyuncs.exceptions.ClientException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class SMSResource {
     public ResponseEntity sendMessage(@RequestParam String timestamp,
                                       @RequestParam String nonce,
                                       @RequestHeader(value = "X-JDY-Signature") String sha1,
-                                      @RequestBody String message) throws IOException {
+                                      @RequestBody String message) throws IOException, ClientException {
         smsService.send(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();
