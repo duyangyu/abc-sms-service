@@ -44,7 +44,9 @@ public class ParserService {
 
     public SmsVO getSmsParams(String message) throws IOException {
         String templateCode = getTemplateCode(message);
-        String phoneNumber = getPhoneNumber(message);
+//        String phoneNumber = getPhoneNumber(message);
+        // fixed phone number for testing purposes
+        String phoneNumber = "15011483305";
         String smsParams = getParams(message);
 
         return new SmsVO(phoneNumber, templateCode, smsParams);
