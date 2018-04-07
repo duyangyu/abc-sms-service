@@ -50,6 +50,7 @@ public class AliyunSMSAdapter {
         LOGGER.debug("Send SMS message, time elapsed: {}", System.currentTimeMillis() - startTimeInMillis);
 
         if (sendSmsResponse.getCode() == null || !sendSmsResponse.getCode().equals("OK")) {
+            LOGGER.debug("response code: {}", sendSmsResponse.getCode());
             throw new RuntimeException("Fail to send SMS message");
         }
     }

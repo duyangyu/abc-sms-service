@@ -73,7 +73,7 @@ public class ParserService {
             smsParamsMap.put(templateKey, value);
         }
 
-        return mapper.writeValueAsString(smsParamsMap).replace("\"", "\\\"");
+        return mapper.writeValueAsString(smsParamsMap);
     }
 
     private List<Field> getFields(String message) throws IOException {
@@ -91,7 +91,7 @@ public class ParserService {
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
         JsonNode jsonTree = mapper.readTree(message);
-        
+
         return jsonTree.at(path).get(fieldName).textValue();
     }
 
