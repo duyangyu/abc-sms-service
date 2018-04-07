@@ -17,17 +17,20 @@ import java.util.Map;
 @Service
 public class ParserService {
 
-    private final ObjectMapper mapper;
+    private ObjectMapper mapper;
 
-    private final FormMappingProperties formMappingProperties;
+    private FormMappingProperties formMappingProperties;
 
     @Value("${jdyun.formIdPath}")
     private String formIdPath;
 
-    @Value("${jdyun.formIdFieldName}")
-    private String formIdFieldName;
+    @Value("${jdyun.appIdFieldName}")
+    private String appIdFieldName;
 
-    private Map<String, String> formsIdNameMap = new HashMap<>();
+    @Value("${jdyun.entryIdFieldName}")
+    private String entryIdFieldName;
+
+    private Map<String, FormMappingProperties.Form> idFormsMap = new HashMap<>();
 
     @Autowired
     public ParserService(ObjectMapper mapper, FormMappingProperties formMappingProperties) {
@@ -35,29 +38,51 @@ public class ParserService {
         this.formMappingProperties = formMappingProperties;
     }
 
-    public String getParams(String message) throws IOException {
-        Map<String, String> smsParams = new HashMap<>();
+    public SmsVO getSmsParams(String message) throws IOException {
+        String templateCode = getTemplateCode(message);
+        String phoneNumber = getPhoneNumber(message);
+        String smsParams = getParams(message);
+
+        return new SmsVO(phoneNumber, templateCode, smsParams);
+    }
+
+    private String getTemplateCode(String message) throws IOException {
+        return idFormsMap.get(getFormId(message)).getTemplateCode();
+    }
+
+    private String getPhoneNumber(String message) throws IOException {
+        FormMappingProperties.Form form = idFormsMap.get(getFormId(message));
+        String phoneNumberPath = form.getPhoneNumberPath();
+        String phoneNumberFieldName = form.getPhoneNumberFieldName();
+        return getFieldValue(message, phoneNumberPath, phoneNumberFieldName);
+
+    }
+
+    private String getParams(String message) throws IOException {
+        Map<String, String> smsParamsMap = new HashMap<>();
         List<Field> fields = getFields(message);
         for (Field field : fields) {
             String path = field.getPath();
             String fieldName = field.getFieldName();
             String templateKey = field.getTemplateKey();
             String value = getFieldValue(message, path, fieldName);
-            smsParams.put(templateKey, value);
+            smsParamsMap.put(templateKey, value);
         }
 
-        return mapper.writeValueAsString(smsParams).replace("\"", "\\\"");
+        return mapper.writeValueAsString(smsParamsMap).replace("\"", "\\\"");
     }
 
     private List<Field> getFields(String message) throws IOException {
         String formId = getFormId(message);
-        String formName = getFormName(formId);
+        String formName = getForm(formId).getName();
 
         return formMappingProperties.getMappings().get(formName).getFields();
     }
 
     private String getFormId(String message) throws IOException {
-        return getFieldValue(message, formIdPath, formIdFieldName);
+        String appId = getFieldValue(message, appIdFieldName, appIdFieldName);
+        String entryId = getFieldValue(message, entryIdFieldName, entryIdFieldName);
+        return appId + entryId;
     }
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
@@ -66,20 +91,20 @@ public class ParserService {
         return jsonTree.at(path).get(fieldName).textValue();
     }
 
-    private String getFormName(String formId) {
-        String formName = formsIdNameMap.get(formId);
+    private FormMappingProperties.Form getForm(String formId) {
+        FormMappingProperties.Form form = idFormsMap.get(formId);
 
-        if (formName == null) {
+        if (form == null) {
             throw new RuntimeException("Invalid form id");
         }
 
-        return formName;
+        return form;
     }
 
     @PostConstruct
-    private void buildFormIdNameMap() {
+    private void buildIdFormsMap() {
         for (FormMappingProperties.Form form : formMappingProperties.getForms()) {
-            formsIdNameMap.put(form.getId(), form.getName());
+            idFormsMap.put(form.getFormId(), form);
         }
     }
 

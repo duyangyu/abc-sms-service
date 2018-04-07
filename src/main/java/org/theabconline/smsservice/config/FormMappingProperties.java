@@ -32,15 +32,27 @@ public class FormMappingProperties {
     }
 
     public static class Form {
-        private String id;
+        private String appId;
+        private String entryId;
         private String name;
+        private String templateCode;
+        private String phoneNumberPath;
+        private String phoneNumberFieldName;
 
-        public String getId() {
-            return id;
+        public String getAppId() {
+            return appId;
         }
 
-        public void setId(String id) {
-            this.id = id;
+        public void setAppId(String appId) {
+            this.appId = appId;
+        }
+
+        public String getEntryId() {
+            return entryId;
+        }
+
+        public void setEntryId(String entryId) {
+            this.entryId = entryId;
         }
 
         public String getName() {
@@ -49,6 +61,34 @@ public class FormMappingProperties {
 
         public void setName(String name) {
             this.name = name;
+        }
+
+        public String getTemplateCode() {
+            return templateCode;
+        }
+
+        public void setTemplateCode(String templateCode) {
+            this.templateCode = templateCode;
+        }
+
+        public String getPhoneNumberPath() {
+            return phoneNumberPath;
+        }
+
+        public void setPhoneNumberPath(String phoneNumberPath) {
+            this.phoneNumberPath = phoneNumberPath;
+        }
+
+        public String getPhoneNumberFieldName() {
+            return phoneNumberFieldName;
+        }
+
+        public void setPhoneNumberFieldName(String phoneNumberFieldName) {
+            this.phoneNumberFieldName = phoneNumberFieldName;
+        }
+
+        public String getFormId() {
+            return this.appId + this.entryId;
         }
     }
 
