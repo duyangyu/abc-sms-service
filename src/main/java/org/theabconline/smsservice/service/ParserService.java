@@ -91,7 +91,7 @@ public class ParserService {
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
         JsonNode jsonTree = mapper.readTree(message);
-        LOGGER.debug("message: {}, path: {}, fieldName: {}", message, path, fieldName);
+        
         return jsonTree.at(path).get(fieldName).textValue();
     }
 
