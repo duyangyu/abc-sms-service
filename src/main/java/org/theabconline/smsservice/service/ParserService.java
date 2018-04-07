@@ -80,8 +80,8 @@ public class ParserService {
     }
 
     private String getFormId(String message) throws IOException {
-        String appId = getFieldValue(message, appIdFieldName, appIdFieldName);
-        String entryId = getFieldValue(message, entryIdFieldName, entryIdFieldName);
+        String appId = getFieldValue(message, formIdPath, appIdFieldName);
+        String entryId = getFieldValue(message, formIdPath, entryIdFieldName);
         return appId + entryId;
     }
 
