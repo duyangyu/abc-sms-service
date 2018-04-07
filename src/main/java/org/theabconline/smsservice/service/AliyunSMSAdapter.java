@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import sun.rmi.runtime.Log;
 
 @Service
 public class AliyunSMSAdapter {
@@ -21,15 +20,13 @@ public class AliyunSMSAdapter {
 
     private static final String PRODUCT = "Dysmsapi";
     private static final String DOMAIN = "dysmsapi.aliyuncs.com";
+    private static final String SIGNATURE = "ABC美好社会咨询社";
 
     @Value("${aliyun.accessKey}")
     private String accessKey;
 
     @Value("${aliyun.secret}")
     private String secret;
-
-    @Value("${aliyun.sms.signature}")
-    private String signature;
 
     public void sendMessage(SmsVO smsVO) throws ClientException {
         Long startTimeInMillis = System.currentTimeMillis();
@@ -41,7 +38,7 @@ public class AliyunSMSAdapter {
         SendSmsRequest request = new SendSmsRequest();
         request.setMethod(MethodType.POST);
         request.setPhoneNumbers(smsVO.getPhoneNumber());
-        request.setSignName(signature);
+        request.setSignName(SIGNATURE);
         request.setTemplateCode(smsVO.getTemplateCode());
         request.setTemplateParam(smsVO.getParams());
 
