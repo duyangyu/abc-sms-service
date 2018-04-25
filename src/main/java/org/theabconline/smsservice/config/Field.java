@@ -1,12 +1,8 @@
 package org.theabconline.smsservice.config;
 
 import com.google.common.base.Strings;
-import org.springframework.beans.factory.annotation.Value;
 
 public class Field {
-
-    @Value("${jdy.fieldDefaultPath:/data}")
-    private String defaultPath;
 
     private String path;
     private String fieldName;
@@ -14,7 +10,7 @@ public class Field {
 
     /* Custom code */
     public String getPath() {
-        return Strings.isNullOrEmpty(path) ? defaultPath : path;
+        return Strings.isNullOrEmpty(path) ? FormMappings.DEFAULT_PATH : path;
     }
 
     /* Generated code */

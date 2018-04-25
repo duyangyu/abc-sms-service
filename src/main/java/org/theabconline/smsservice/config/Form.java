@@ -2,13 +2,12 @@ package org.theabconline.smsservice.config;
 
 import com.google.common.base.Strings;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+@Component
 public class Form {
-
-    @Value("${jdy.formPhoneNumberDefaultPath:/data}")
-    private String defaultPath;
 
     private String appId;
     private String entryId;
@@ -23,7 +22,7 @@ public class Form {
     }
 
     public String getPhoneNumberPath() {
-        return Strings.isNullOrEmpty(phoneNumberPath) ? defaultPath : phoneNumberPath;
+        return Strings.isNullOrEmpty(phoneNumberPath) ? FormMappings.DEFAULT_PATH : phoneNumberPath;
     }
 
     /* Generated code */

@@ -1,5 +1,6 @@
 package org.theabconline.smsservice.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -11,6 +12,8 @@ import java.util.Map;
 @PropertySource("classpath:form-mapping.properties")
 @ConfigurationProperties
 public class FormMappings {
+
+    public static final String DEFAULT_PATH = "/data";
 
     private List<Form> forms;
     private Map<String, Recipients> mappings;
@@ -30,4 +33,6 @@ public class FormMappings {
     public void setMappings(Map<String, Recipients> mappings) {
         this.mappings = mappings;
     }
+
+
 }
