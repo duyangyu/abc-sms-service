@@ -1,5 +1,6 @@
 package org.theabconline.smsservice.config;
 
+import com.google.common.base.Strings;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class Form {
     }
 
     public String getPhoneNumberPath() {
-        return phoneNumberPath == null ? defaultPath : phoneNumberPath;
+        return Strings.isNullOrEmpty(phoneNumberPath) ? defaultPath : phoneNumberPath;
     }
 
     /* Generated code */

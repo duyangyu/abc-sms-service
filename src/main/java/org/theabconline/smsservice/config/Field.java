@@ -1,5 +1,6 @@
 package org.theabconline.smsservice.config;
 
+import com.google.common.base.Strings;
 import org.springframework.beans.factory.annotation.Value;
 
 public class Field {
@@ -13,7 +14,7 @@ public class Field {
 
     /* Custom code */
     public String getPath() {
-        return path == null ? defaultPath : path;
+        return Strings.isNullOrEmpty(path) ? defaultPath : path;
     }
 
     /* Generated code */

@@ -25,6 +25,13 @@ public class FormTest {
     }
 
     @Test
+    public void testGetPathDefaultWithEmpty() {
+        fixture.setPhoneNumberPath("");
+        assertEquals(DEFAULT_PATH, fixture.getPhoneNumberPath());
+    }
+
+
+    @Test
     public void testGetPathCustomized() {
         String customPath = "custom";
 

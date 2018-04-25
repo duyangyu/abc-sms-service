@@ -25,6 +25,12 @@ public class FieldTest {
     }
 
     @Test
+    public void testGetPathDefaultWithEmpty() {
+        fixture.setPath("");
+        assertEquals(DEFAULT_PATH, fixture.getPath());
+    }
+
+    @Test
     public void testGetPathCustomized() {
         String customPath = "custom";
 
