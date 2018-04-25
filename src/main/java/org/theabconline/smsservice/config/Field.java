@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 public class Field {
 
-    @Value("${jdy.fieldDefaultPath: /data}")
+    @Value("${jdy.fieldDefaultPath:/data}")
     private String defaultPath;
 
     private String path;

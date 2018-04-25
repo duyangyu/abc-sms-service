@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Form {
 
-    @Value("${jdy.formPhoneNumberDefaultPath: /data}")
+    @Value("${jdy.formPhoneNumberDefaultPath:/data}")
     private String defaultPath;
 
     private String appId;
