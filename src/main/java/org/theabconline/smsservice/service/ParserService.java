@@ -2,13 +2,17 @@ package org.theabconline.smsservice.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.config.FormMappingProperties;
-import org.theabconline.smsservice.config.FormMappingProperties.Field;
+import org.theabconline.smsservice.config.Field;
+import org.theabconline.smsservice.config.Form;
+import org.theabconline.smsservice.config.FormMappings;
+import org.theabconline.smsservice.config.Recipient;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -23,66 +27,92 @@ public class ParserService {
 
     private ObjectMapper mapper;
 
-    private FormMappingProperties formMappingProperties;
+    private FormMappings formMappings;
 
-    @Value("${jdyun.formIdPath}")
+    @Value("${jdyun.formIdPath:/data}")
     private String formIdPath;
 
-    @Value("${jdyun.appIdFieldName}")
+    @Value("${jdyun.appIdFieldName:appId}")
     private String appIdFieldName;
 
-    @Value("${jdyun.entryIdFieldName}")
+    @Value("${jdyun.entryIdFieldName:entryId}")
     private String entryIdFieldName;
 
-    private Map<String, FormMappingProperties.Form> idFormsMap = new HashMap<>();
+    private Map<String, Form> idFormsMap = new HashMap<>();
 
     @Autowired
-    public ParserService(ObjectMapper mapper, FormMappingProperties formMappingProperties) {
+    public ParserService(ObjectMapper mapper, FormMappings formMappings) {
         this.mapper = mapper;
-        this.formMappingProperties = formMappingProperties;
+        this.formMappings = formMappings;
     }
 
-    public SmsVO getSmsParams(String message) throws IOException {
-        String templateCode = getTemplateCode(message);
-        String phoneNumber = getPhoneNumber(message);
-        // fixed phone number for testing purposes
-//        String phoneNumber = "15011483305";
-        String smsParams = getParams(message);
-
-        return new SmsVO(phoneNumber, templateCode, smsParams);
+    @PostConstruct
+    private void buildIdFormsMap() {
+        for (Form form : formMappings.getForms()) {
+            idFormsMap.put(form.getFormId(), form);
+        }
     }
 
-    private String getTemplateCode(String message) throws IOException {
-        return idFormsMap.get(getFormId(message)).getTemplateCode();
+    public List<SmsVO> getSmsParams(String message) throws IOException {
+        List<SmsVO> smsVOList = Lists.newArrayList();
+        List<String> templateCodes = getTemplateCodes(message);
+        List<String> phoneNumbers = getPhoneNumbers(message);
+        List<String> smsParams = getJsonStrings(message);
+
+        for (int i = 0; i < templateCodes.size(); i++) {
+            String phoneNumber = phoneNumbers.get(i);
+            String templateCode = templateCodes.get(i);
+            String smsParam = smsParams.get(i);
+
+            smsVOList.add(new SmsVO(phoneNumber, templateCode, smsParam));
+        }
+
+        return smsVOList;
     }
 
-    private String getPhoneNumber(String message) throws IOException {
-        FormMappingProperties.Form form = idFormsMap.get(getFormId(message));
+    private List<String> getTemplateCodes(String message) throws IOException {
+        return idFormsMap.get(getFormId(message)).getTemplateCodes();
+    }
+
+    private List<String> getPhoneNumbers(String message) throws IOException {
+        List<String> phoneNumbers = Lists.newArrayList();
+        Form form = getForm(getFormId(message));
         String phoneNumberPath = form.getPhoneNumberPath();
-        String phoneNumberFieldName = form.getPhoneNumberFieldName();
-        return getFieldValue(message, phoneNumberPath, phoneNumberFieldName);
+        List<String> phoneNumberFieldNames = form.getPhoneNumberFieldNames();
+        for(String phoneNumberFieldName : phoneNumberFieldNames) {
+            phoneNumbers.add(getFieldValue(message, phoneNumberPath, phoneNumberFieldName));
+        }
+
+        return phoneNumbers;
 
     }
 
-    private String getParams(String message) throws IOException {
-        Map<String, String> smsParamsMap = new HashMap<>();
-        List<Field> fields = getFields(message);
+    private List<String> getJsonStrings(String message) throws IOException {
+        List<String> jsonStrings = Lists.newArrayList();
+        Form form = getForm(getFormId(message));
+        List<Recipient> recipients = formMappings.getMappings().get(form.getName()).getRecipients();
+        for (Recipient recipient : recipients) {
+            List<Field> fields = recipient.getFields();
+            String jsonString = assembleJsonString(fields, message);
+            LOGGER.debug("JSON string assembled: {}", jsonString);
+            jsonStrings.add(jsonString);
+        }
+
+        return jsonStrings;
+    }
+
+    private String assembleJsonString(List<Field> fields, String message) throws IOException {
+        Map<String, String> keyValuePairs = Maps.newHashMap();
+
         for (Field field : fields) {
             String path = field.getPath();
             String fieldName = field.getFieldName();
             String templateKey = field.getTemplateKey();
             String value = getFieldValue(message, path, fieldName);
-            smsParamsMap.put(templateKey, value);
+            keyValuePairs.put(templateKey, value);
         }
 
-        return mapper.writeValueAsString(smsParamsMap);
-    }
-
-    private List<Field> getFields(String message) throws IOException {
-        String formId = getFormId(message);
-        String formName = getForm(formId).getName();
-
-        return formMappingProperties.getMappings().get(formName).getFields();
+        return mapper.writeValueAsString(keyValuePairs);
     }
 
     private String getFormId(String message) throws IOException {
@@ -97,21 +127,14 @@ public class ParserService {
         return jsonTree.at(path).get(fieldName).textValue();
     }
 
-    private FormMappingProperties.Form getForm(String formId) {
-        FormMappingProperties.Form form = idFormsMap.get(formId);
+    private Form getForm(String formId) {
+        Form form = idFormsMap.get(formId);
 
         if (form == null) {
             throw new RuntimeException("Invalid form id");
         }
 
         return form;
-    }
-
-    @PostConstruct
-    private void buildIdFormsMap() {
-        for (FormMappingProperties.Form form : formMappingProperties.getForms()) {
-            idFormsMap.put(form.getFormId(), form);
-        }
     }
 
 }
