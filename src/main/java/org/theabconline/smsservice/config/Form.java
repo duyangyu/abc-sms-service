@@ -12,7 +12,7 @@ public class Form {
     private String appId;
     private String entryId;
     private String name;
-    private String templateCode;
+    private List<String> templateCodes;
     private String phoneNumberPath;
     private List<String> phoneNumberFieldNames;
 
@@ -50,12 +50,12 @@ public class Form {
         this.name = name;
     }
 
-    public String getTemplateCode() {
-        return templateCode;
+    public List<String> getTemplateCodes() {
+        return templateCodes;
     }
 
-    public void setTemplateCode(String templateCode) {
-        this.templateCode = templateCode;
+    public void setTemplateCodes(List<String> templateCodes) {
+        this.templateCodes = templateCodes;
     }
 
     public void setPhoneNumberPath(String phoneNumberPath) {

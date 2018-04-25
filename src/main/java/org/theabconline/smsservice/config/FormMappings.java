@@ -10,7 +10,7 @@ import java.util.Map;
 @Configuration
 @PropertySource("classpath:form-mapping.properties")
 @ConfigurationProperties
-public class FormMapping {
+public class FormMappings {
 
     private List<Form> forms;
     private Map<String, Recipients> mappings;
