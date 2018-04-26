@@ -1,16 +1,20 @@
 package org.theabconline.smsservice.rest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
-import java.io.IOException;
-
 @ControllerAdvice(basePackageClasses = SMSResource.class)
-public class ResourceAdvice {
+public class GlobalExceptionHandler {
 
-//    @ExceptionHandler({IOException.class, RuntimeException.class, Exception.class})
-    public ResponseEntity errorHandler() {
+    public static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity handleUnknown() {
         return ResponseEntity.badRequest().build();
     }
+
+
 }

@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.exception.SendSmsException;
 
 @Service
 public class AliyunSMSAdapter {
@@ -44,7 +45,7 @@ public class AliyunSMSAdapter {
 
         if (sendSmsResponse.getCode() == null || !sendSmsResponse.getCode().equals("OK")) {
             LOGGER.debug("response code: {}", sendSmsResponse.getCode());
-            throw new RuntimeException("Fail to send SMS message");
+            throw new SendSmsException(sendSmsResponse);
         }
     }
 }
