@@ -19,7 +19,7 @@ public class SMSResource {
     public ResponseEntity sendMessage(@RequestParam String timestamp,
                                       @RequestParam String nonce,
                                       @RequestHeader(value = "X-JDY-Signature") String sha1,
-                                      @RequestBody String message) throws IOException, ClientException {
+                                      @RequestBody String message) {
         smsService.send(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();

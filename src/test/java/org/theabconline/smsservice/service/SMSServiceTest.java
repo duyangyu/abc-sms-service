@@ -27,34 +27,34 @@ public class SMSServiceTest {
     private SMSService fixture;
 
     @Mock
-    ValidationService validationService;
+    private ValidationService validationService;
 
     @Mock
-    ParserService parserService;
+    private ParserService parserService;
 
     @Mock
-    AliyunSMSAdapter aliyunSMSAdapter;
+    private AliyunSMSAdapter aliyunSMSAdapter;
 
     @Mock
-    EmailService emailService;
+    private EmailService emailService;
 
     @Mock
-    LogService logService;
+    private LogService logService;
 
     @Captor
-    ArgumentCaptor<SmsVO> smsVOCaptor1;
+    private ArgumentCaptor<SmsVO> smsVOCaptor1;
 
     @Captor
-    ArgumentCaptor<SmsVO> smsVOCaptor2;
+    private ArgumentCaptor<SmsVO> smsVOCaptor2;
 
     @Captor
-    ArgumentCaptor<SmsVO> smsVOCaptor3;
+    private ArgumentCaptor<SmsVO> smsVOCaptor3;
 
     @Captor
-    ArgumentCaptor<String> errorMessageCaptor1;
+    private ArgumentCaptor<String> errorMessageCaptor1;
 
     @Captor
-    ArgumentCaptor<String> errorMessageCaptor2;
+    private ArgumentCaptor<String> errorMessageCaptor2;
 
     @Test
     public void testSendHappyPath() throws IOException {
@@ -73,7 +73,7 @@ public class SMSServiceTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void testSendInvalidMessage() throws IOException {
+    public void testSendInvalidMessage() {
         Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(false);
 
@@ -108,7 +108,7 @@ public class SMSServiceTest {
         fixture.processQueue();
 
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
         assertEquals(smsVO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
@@ -132,7 +132,7 @@ public class SMSServiceTest {
         fixture.processQueue();
 
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
         assertEquals(smsVO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
@@ -154,7 +154,7 @@ public class SMSServiceTest {
         fixture.processQueue();
 
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
         assertEquals(smsVO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());

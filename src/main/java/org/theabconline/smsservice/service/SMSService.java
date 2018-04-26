@@ -4,6 +4,7 @@ import com.aliyuncs.exceptions.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,9 @@ public class SMSService {
 
     private final Queue<SmsVO> messageQueue;
 
+    @Value("${checkBlocking.threshold:10}")
+    private Integer blockingThreshold;
+
     @Autowired
     public SMSService(ValidationService validationService,
                       ParserService parserService,
@@ -46,17 +50,20 @@ public class SMSService {
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public void send(String message, String timestamp, String nonce, String sha1) throws IOException {
+    public void send(String message, String timestamp, String nonce, String sha1) {
         if (!validationService.isValid(message, timestamp, nonce, sha1)) {
             LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
             LOGGER.error("message: {}", message);
             throw new RuntimeException("Invalid Message");
         }
 
-        List<SmsVO> smsVOList = parserService.getSmsParams(message);
-
-        messageQueue.addAll(smsVOList);
-        LOGGER.debug("Added {} message(s) to queue", smsVOList.size());
+        try {
+            List<SmsVO> smsVOList = parserService.getSmsParams(message);
+            messageQueue.addAll(smsVOList);
+            LOGGER.debug("Added {} message(s) to queue", smsVOList.size());
+        } catch (IOException e) {
+            emailService.sendParsingErroEmail(message);
+        }
     }
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
@@ -83,14 +90,14 @@ public class SMSService {
 
     @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
     public void checkBlocking() {
-        if (messageQueue.size() > 10) {
+        if (messageQueue.size() > blockingThreshold) {
             emailService.sendQueueBlockingEmail();
         }
     }
 
     private void handleError(SmsVO smsVO, String errorMessage) {
         logService.logFailure(smsVO, errorMessage);
-        emailService.sendFailureEmail(smsVO, errorMessage);
+        emailService.sendSendingFailureEmail(smsVO, errorMessage);
     }
 
 }
