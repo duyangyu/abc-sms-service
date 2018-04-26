@@ -29,8 +29,6 @@ public class AliyunSMSAdapter {
     private String secret;
 
     public void sendMessage(SmsVO smsVO) throws ClientException {
-        Long startTimeInMillis = System.currentTimeMillis();
-
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKey, secret);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", PRODUCT, DOMAIN);
         IAcsClient acsClient = new DefaultAcsClient(profile);
@@ -43,8 +41,6 @@ public class AliyunSMSAdapter {
         request.setTemplateParam(smsVO.getParams());
 
         SendSmsResponse sendSmsResponse = acsClient.getAcsResponse(request);
-
-        LOGGER.debug("Send SMS message, time elapsed: {}", System.currentTimeMillis() - startTimeInMillis);
 
         if (sendSmsResponse.getCode() == null || !sendSmsResponse.getCode().equals("OK")) {
             LOGGER.debug("response code: {}", sendSmsResponse.getCode());
