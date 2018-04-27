@@ -9,11 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.mapping.Field;
 import org.theabconline.smsservice.mapping.Form;
 import org.theabconline.smsservice.mapping.FormMappings;
 import org.theabconline.smsservice.mapping.Recipient;
-import org.theabconline.smsservice.dto.SmsDTO;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
