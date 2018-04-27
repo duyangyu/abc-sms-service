@@ -16,7 +16,7 @@ public class EmailService {
     private final JavaMailSender mailSender;
 
     @Value("${email.notification.recipients:duyangyu@theabconline.org}")
-    private String recipients;
+    private String[] recipients;
 
     @Autowired
     public EmailService(JavaMailSender mailSender) {
@@ -29,7 +29,13 @@ public class EmailService {
         message.setTo(recipients);
         message.setSubject(subject);
         message.setText(text);
-        mailSender.send(message);
-        LOGGER.debug("Mail sent");
+        try {
+            mailSender.send(message);
+            LOGGER.debug("Mail sent");
+        } catch (Exception e) {
+            LOGGER.error("Failed to send mail, recipients: {}, subject: {}, text: {}", recipients, subject, text);
+            LOGGER.debug("Reason: {}", e.getCause().getMessage());
+        }
+
     }
 }

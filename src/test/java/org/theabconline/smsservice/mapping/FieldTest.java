@@ -1,9 +1,7 @@
-package org.theabconline.smsservice.config;
+package org.theabconline.smsservice.mapping;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.theabconline.smsservice.mapping.Field;
-import org.theabconline.smsservice.mapping.FormMappings;
 
 import static org.junit.Assert.assertEquals;
 
