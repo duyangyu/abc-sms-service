@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 @Service
@@ -29,17 +30,17 @@ public class AliyunSMSAdapter {
     @Value("${aliyun.secret}")
     private String secret;
 
-    public void sendMessage(SmsVO smsVO) throws ClientException {
+    public void sendMessage(SmsDTO smsDTO) throws ClientException {
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKey, secret);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", PRODUCT, DOMAIN);
         IAcsClient acsClient = new DefaultAcsClient(profile);
 
         SendSmsRequest request = new SendSmsRequest();
         request.setMethod(MethodType.POST);
-        request.setPhoneNumbers(smsVO.getPhoneNumber());
+        request.setPhoneNumbers(smsDTO.getPhoneNumber());
         request.setSignName(SIGNATURE);
-        request.setTemplateCode(smsVO.getTemplateCode());
-        request.setTemplateParam(smsVO.getParams());
+        request.setTemplateCode(smsDTO.getTemplateCode());
+        request.setTemplateParam(smsDTO.getParams());
 
         SendSmsResponse sendSmsResponse = acsClient.getAcsResponse(request);
 

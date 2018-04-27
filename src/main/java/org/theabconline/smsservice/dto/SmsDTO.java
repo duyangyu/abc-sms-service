@@ -1,15 +1,15 @@
-package org.theabconline.smsservice.service;
+package org.theabconline.smsservice.dto;
 
-public class SmsVO {
+public class SmsDTO {
 
     private String phoneNumber;
     private String templateCode;
     private String params;
 
-    public SmsVO() {
+    public SmsDTO() {
     }
 
-    public SmsVO(String phoneNumber, String templateCode, String params) {
+    public SmsDTO(String phoneNumber, String templateCode, String params) {
         this.phoneNumber = phoneNumber;
         this.templateCode = templateCode;
         this.params = params;

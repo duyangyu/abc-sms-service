@@ -9,6 +9,7 @@ import org.mockito.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 import java.io.IOException;
@@ -42,13 +43,13 @@ public class SMSServiceTest {
     private LogService logService;
 
     @Captor
-    private ArgumentCaptor<SmsVO> smsVOCaptor1;
+    private ArgumentCaptor<SmsDTO> smsVOCaptor1;
 
     @Captor
-    private ArgumentCaptor<SmsVO> smsVOCaptor2;
+    private ArgumentCaptor<SmsDTO> smsVOCaptor2;
 
     @Captor
-    private ArgumentCaptor<SmsVO> smsVOCaptor3;
+    private ArgumentCaptor<SmsDTO> smsVOCaptor3;
 
     @Captor
     private ArgumentCaptor<String> errorMessageCaptor1;
@@ -58,18 +59,18 @@ public class SMSServiceTest {
 
     @Test
     public void testSendHappyPath() throws IOException {
-        SmsVO smsVO = new SmsVO();
-        List<SmsVO> smsVOList = Lists.newArrayList(smsVO);
+        SmsDTO smsDTO = new SmsDTO();
+        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
 
         Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
                 .thenReturn(true);
-        Mockito.when(parserService.getSmsParams(Mockito.anyString())).thenReturn(smsVOList);
+        Mockito.when(parserService.getSmsParams(Mockito.anyString())).thenReturn(smsDTOList);
 
         fixture.send("message", "timestamp", "nonce", "sha1");
 
-        Queue<SmsVO> queue = (Queue<SmsVO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        assertEquals(smsVOList.size(), queue.size());
-        assertEquals(smsVO, queue.poll());
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        assertEquals(smsDTOList.size(), queue.size());
+        assertEquals(smsDTO, queue.poll());
     }
 
     @Test(expected = RuntimeException.class)
@@ -84,22 +85,22 @@ public class SMSServiceTest {
 
     @Test
     public void testProcessQueueHappyPath() throws ClientException {
-        SmsVO smsVO = new SmsVO();
-        Queue<SmsVO> queue = (Queue<SmsVO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsVO);
+        SmsDTO smsDTO = new SmsDTO();
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add(smsDTO);
         Mockito.doNothing().when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
 
         fixture.processQueue();
 
-        assertEquals(smsVO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
     }
 
     @Test
     public void testProcessQueueClientException() throws ClientException {
-        SmsVO smsVO = new SmsVO();
-        Queue<SmsVO> queue = (Queue<SmsVO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsVO);
+        SmsDTO smsDTO = new SmsDTO();
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add(smsDTO);
         String errCode = "errCode";
         String errMsg = "errMsg";
         ClientException clientException = new ClientException(errCode, errMsg);
@@ -110,19 +111,19 @@ public class SMSServiceTest {
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
         Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
-        assertEquals(smsVO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsVO, smsVOCaptor2.getValue());
+        assertEquals(smsDTO, smsVOCaptor2.getValue());
         assertEquals(errMsg, errorMessageCaptor1.getValue());
-        assertEquals(smsVO, smsVOCaptor3.getValue());
+        assertEquals(smsDTO, smsVOCaptor3.getValue());
         assertEquals(errMsg, errorMessageCaptor2.getValue());
     }
 
     @Test
     public void testProcessQueueSendSmsException() throws ClientException {
-        SmsVO smsVO = new SmsVO();
-        Queue<SmsVO> queue = (Queue<SmsVO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsVO);
+        SmsDTO smsDTO = new SmsDTO();
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add(smsDTO);
         String errMsg = "failure message";
         SendSmsResponse sendSmsResponse = new SendSmsResponse();
         sendSmsResponse.setMessage(errMsg);
@@ -134,19 +135,19 @@ public class SMSServiceTest {
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
         Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
-        assertEquals(smsVO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsVO, smsVOCaptor2.getValue());
+        assertEquals(smsDTO, smsVOCaptor2.getValue());
         assertEquals(errMsg, errorMessageCaptor1.getValue());
-        assertEquals(smsVO, smsVOCaptor3.getValue());
+        assertEquals(smsDTO, smsVOCaptor3.getValue());
         assertEquals(errMsg, errorMessageCaptor2.getValue());
     }
 
     @Test
     public void testProcessGeneralException() throws ClientException {
-        SmsVO smsVO = new SmsVO();
-        Queue<SmsVO> queue = (Queue<SmsVO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsVO);
+        SmsDTO smsDTO = new SmsDTO();
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add(smsDTO);
         String errMsg = "exception message";
         Exception exception = new RuntimeException(errMsg);
         Mockito.doThrow(exception).when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
@@ -156,11 +157,11 @@ public class SMSServiceTest {
         Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
         Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
 
-        assertEquals(smsVO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, smsVOCaptor1.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsVO, smsVOCaptor2.getValue());
+        assertEquals(smsDTO, smsVOCaptor2.getValue());
         assertTrue(errorMessageCaptor1.getValue().contains(errMsg));
-        assertEquals(smsVO, smsVOCaptor3.getValue());
+        assertEquals(smsDTO, smsVOCaptor3.getValue());
         assertTrue(errorMessageCaptor2.getValue().contains(errMsg));
     }
 }

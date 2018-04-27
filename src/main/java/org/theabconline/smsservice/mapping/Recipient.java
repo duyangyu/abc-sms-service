@@ -1,4 +1,4 @@
-package org.theabconline.smsservice.config;
+package org.theabconline.smsservice.mapping;
 
 import java.util.List;
 

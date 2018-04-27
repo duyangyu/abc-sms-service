@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.SmsDTO;
 
 @Service
 public class EmailService {
@@ -15,7 +16,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${email.notification.recipients}")
+    @Value("${email.notification.recipients:duyangyu@theabconline.org}")
     private String recipients;
 
     @Autowired
@@ -23,12 +24,12 @@ public class EmailService {
         this.mailSender = mailSender;
     }
 
-    public void sendSendingFailureEmail(SmsVO smsVO, String errorMessage) {
-        String subject = "Error! Failed to send sms to" + smsVO.getPhoneNumber();
+    public void sendSendingFailureEmail(SmsDTO smsDTO, String errorMessage) {
+        String subject = "Error! Failed to send sms to" + smsDTO.getPhoneNumber();
         StringBuilder sb = new StringBuilder();
-        sb.append("Recipient(s): ").append(smsVO.getPhoneNumber()).append("\n")
-                .append("Template code: ").append(smsVO.getTemplateCode()).append("\n")
-                .append("Payload: ").append(smsVO.getParams()).append("\n")
+        sb.append("Recipient(s): ").append(smsDTO.getPhoneNumber()).append("\n")
+                .append("Template code: ").append(smsDTO.getTemplateCode()).append("\n")
+                .append("Payload: ").append(smsDTO.getParams()).append("\n")
                 .append("\n")
                 .append("Error message: ").append(errorMessage);
 

@@ -1,19 +1,20 @@
 package org.theabconline.smsservice.rest;
 
-import com.aliyuncs.exceptions.ClientException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.theabconline.smsservice.service.SMSService;
 
-import java.io.IOException;
-
 @RequestMapping("/api")
 @RestController
 public class SMSResource {
 
+    private final SMSService smsService;
+
     @Autowired
-    SMSService smsService;
+    public SMSResource(SMSService smsService) {
+        this.smsService = smsService;
+    }
 
     @RequestMapping(value = "/abc", method = RequestMethod.POST)
     public ResponseEntity sendMessage(@RequestParam String timestamp,

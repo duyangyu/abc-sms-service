@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 import java.io.IOException;
@@ -31,7 +32,7 @@ public class SMSService {
 
     private final LogService logService;
 
-    private final Queue<SmsVO> messageQueue;
+    private final Queue<SmsDTO> messageQueue;
 
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
@@ -58,9 +59,9 @@ public class SMSService {
         }
 
         try {
-            List<SmsVO> smsVOList = parserService.getSmsParams(message);
-            messageQueue.addAll(smsVOList);
-            LOGGER.debug("Added {} message(s) to queue", smsVOList.size());
+            List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
+            messageQueue.addAll(smsDTOList);
+            LOGGER.debug("Added {} message(s) to queue", smsDTOList.size());
         } catch (IOException e) {
             emailService.sendParsingErroEmail(message);
         }
@@ -68,21 +69,21 @@ public class SMSService {
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
     public void processQueue() {
-        SmsVO smsVO = messageQueue.poll();
-        if (smsVO != null) {
+        SmsDTO smsDTO = messageQueue.poll();
+        if (smsDTO != null) {
             try {
-                aliyunSMSAdapter.sendMessage(smsVO);
-                LOGGER.info("Send message to {}, template: {}, payload: {}", smsVO.getPhoneNumber(), smsVO.getTemplateCode(), smsVO.getParams());
+                aliyunSMSAdapter.sendMessage(smsDTO);
+                LOGGER.info("Send message to {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
                 return;
             } catch (ClientException e) {
                 LOGGER.error("Failed to send message, caused by aliyun client, error message: {}", e.getErrMsg());
-                handleError(smsVO, e.getErrMsg());
+                handleError(smsDTO, e.getErrMsg());
             } catch (SendSmsException e) {
                 LOGGER.error("Failed to send message, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
-                handleError(smsVO, e.getSendSmsResponse().getMessage());
+                handleError(smsDTO, e.getSendSmsResponse().getMessage());
             } catch (Exception e) {
                 LOGGER.error("Failed to send message, unknown reason");
-                handleError(smsVO, e.toString());
+                handleError(smsDTO, e.toString());
             }
         }
         LOGGER.info("Processed queue");
@@ -95,9 +96,9 @@ public class SMSService {
         }
     }
 
-    private void handleError(SmsVO smsVO, String errorMessage) {
-        logService.logFailure(smsVO, errorMessage);
-        emailService.sendSendingFailureEmail(smsVO, errorMessage);
+    private void handleError(SmsDTO smsDTO, String errorMessage) {
+        logService.logFailure(smsDTO, errorMessage);
+        emailService.sendSendingFailureEmail(smsDTO, errorMessage);
     }
 
 }

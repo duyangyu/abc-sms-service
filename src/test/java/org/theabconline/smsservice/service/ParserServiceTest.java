@@ -3,8 +3,11 @@ package org.theabconline.smsservice.service;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.theabconline.smsservice.Application;
+import org.theabconline.smsservice.dto.SmsDTO;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,6 +16,7 @@ import static org.junit.Assert.assertEquals;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
+@EnableAutoConfiguration
 public class ParserServiceTest {
 
     private static final String PAYLOAD_SINGLE = "{\"data\":{\"appId\":\"appId2\",\"entryId\":\"entryId2\",\"phoneNumberField3\":\"789\",\"field4\":\"field4\"}}";
@@ -34,25 +38,25 @@ public class ParserServiceTest {
 
     @Test
     public void testGetSmsParamsSingleRecipient() throws IOException {
-        List<SmsVO> voList = fixture.getSmsParams(PAYLOAD_SINGLE);
+        List<SmsDTO> voList = fixture.getSmsParams(PAYLOAD_SINGLE);
 
         assertEquals(1, voList.size());
-        SmsVO result = voList.get(0);
+        SmsDTO result = voList.get(0);
         assertEquals(PHONE_NUMBER_SINGLE, result.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_SINGLE, result.getTemplateCode());
         assertEquals(PARAMS_SINGLE, result.getParams());
     }
 
     @Test
-    public void testGetSmsParamsMultipleReciepient() throws IOException {
-        List<SmsVO> voList = fixture.getSmsParams(PAYLOAD_MULTIPLE);
+    public void testGetSimsParamsMultipleRecipients() throws IOException {
+        List<SmsDTO> voList = fixture.getSmsParams(PAYLOAD_MULTIPLE);
 
         assertEquals(2, voList.size());
-        SmsVO result1 = voList.get(0);
+        SmsDTO result1 = voList.get(0);
         assertEquals(PHONE_NUMBER_1_MULTI, result1.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_1_MULTI, result1.getTemplateCode());
         assertEquals(PARAMS_1_MULTI, result1.getParams());
-        SmsVO result2 = voList.get(1);
+        SmsDTO result2 = voList.get(1);
         assertEquals(PHONE_NUMBER_2_MULTI, result2.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_2_MULTI, result2.getTemplateCode());
         assertEquals(PARAMS_2_MULTI, result2.getParams());

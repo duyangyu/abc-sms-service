@@ -9,10 +9,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.config.Field;
-import org.theabconline.smsservice.config.Form;
-import org.theabconline.smsservice.config.FormMappings;
-import org.theabconline.smsservice.config.Recipient;
+import org.theabconline.smsservice.mapping.Field;
+import org.theabconline.smsservice.mapping.Form;
+import org.theabconline.smsservice.mapping.FormMappings;
+import org.theabconline.smsservice.mapping.Recipient;
+import org.theabconline.smsservice.dto.SmsDTO;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -53,8 +54,8 @@ public class ParserService {
         }
     }
 
-    public List<SmsVO> getSmsParams(String message) throws IOException {
-        List<SmsVO> smsVOList = Lists.newArrayList();
+    public List<SmsDTO> getSmsParams(String message) throws IOException {
+        List<SmsDTO> smsDTOList = Lists.newArrayList();
         List<String> templateCodes = getTemplateCodes(message);
         List<String> phoneNumbers = getPhoneNumbers(message);
         List<String> smsParams = getJsonStrings(message);
@@ -64,10 +65,10 @@ public class ParserService {
             String templateCode = templateCodes.get(i);
             String smsParam = smsParams.get(i);
 
-            smsVOList.add(new SmsVO(phoneNumber, templateCode, smsParam));
+            smsDTOList.add(new SmsDTO(phoneNumber, templateCode, smsParam));
         }
 
-        return smsVOList;
+        return smsDTOList;
     }
 
     private List<String> getTemplateCodes(String message) throws IOException {
