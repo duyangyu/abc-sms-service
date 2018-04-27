@@ -12,7 +12,8 @@ public class GlobalExceptionHandler {
     public static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity handleUnknown() {
+    public ResponseEntity handleUnknown(Exception e) {
+        LOGGER.debug("Unknown exception handled, message: {}", e.getMessage());
         return ResponseEntity.badRequest().build();
     }
 
