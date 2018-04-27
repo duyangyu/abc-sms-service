@@ -18,6 +18,9 @@ public class EmailService {
     @Value("${email.notification.recipients:duyangyu@theabconline.org}")
     private String[] recipients;
 
+    @Value("${spring.mail.username:smsservice@mail2.theabconline.org}")
+    private String sender;
+
     @Autowired
     public EmailService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
@@ -26,6 +29,7 @@ public class EmailService {
     public void send(String subject, String text) {
         LOGGER.debug("Sending mail, recipients: {}, subject: {}, text: {}", recipients, subject, text);
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(sender);
         message.setTo(recipients);
         message.setSubject(subject);
         message.setText(text);
