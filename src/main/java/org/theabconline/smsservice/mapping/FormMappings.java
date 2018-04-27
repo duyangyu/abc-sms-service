@@ -17,6 +17,7 @@ public class FormMappings {
 
     private List<Form> forms;
     private Map<String, Recipients> mappings;
+    private RegistrationForm registrationForm;
 
     public List<Form> getForms() {
         return forms;
@@ -34,5 +35,11 @@ public class FormMappings {
         this.mappings = mappings;
     }
 
+    public RegistrationForm getRegistrationForm() {
+        return registrationForm;
+    }
 
+    public void setRegistrationForm(RegistrationForm registrationForm) {
+        this.registrationForm = registrationForm;
+    }
 }
