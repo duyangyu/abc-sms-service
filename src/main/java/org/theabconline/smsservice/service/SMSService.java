@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 import java.io.IOException;
@@ -60,10 +61,13 @@ public class SMSService {
 
         try {
             List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
-            messageQueue.addAll(smsDTOList);
-            LOGGER.debug("Added {} message(s) to queue", smsDTOList.size());
+            for (SmsDTO smsDTO : smsDTOList) {
+                messageQueue.add(smsDTO);
+                LOGGER.info("Message added to queue, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
+            }
+
         } catch (IOException e) {
-            emailService.sendParsingErroEmail(message);
+            handleParsingException(message);
         }
     }
 
@@ -73,32 +77,64 @@ public class SMSService {
         if (smsDTO != null) {
             try {
                 aliyunSMSAdapter.sendMessage(smsDTO);
-                LOGGER.info("Send message to {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
+                LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
                 return;
             } catch (ClientException e) {
-                LOGGER.error("Failed to send message, caused by aliyun client, error message: {}", e.getErrMsg());
-                handleError(smsDTO, e.getErrMsg());
+                LOGGER.error("Message not sent, caused by aliyun client, error message: {}", e.getErrMsg());
+                handleSendingException(smsDTO, e.getErrMsg());
             } catch (SendSmsException e) {
-                LOGGER.error("Failed to send message, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
-                handleError(smsDTO, e.getSendSmsResponse().getMessage());
+                LOGGER.error("Message not sent, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
+                handleSendingException(smsDTO, e.getSendSmsResponse().getMessage());
             } catch (Exception e) {
-                LOGGER.error("Failed to send message, unknown reason");
-                handleError(smsDTO, e.toString());
+                LOGGER.error("Message not sent, unknown reason");
+                handleSendingException(smsDTO, e.toString());
             }
         }
-        LOGGER.info("Processed queue");
+        LOGGER.info("Queue processed");
     }
 
     @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
     public void checkBlocking() {
         if (messageQueue.size() > blockingThreshold) {
-            emailService.sendQueueBlockingEmail();
+            sendQueueBlockingEmail();
         }
     }
 
-    private void handleError(SmsDTO smsDTO, String errorMessage) {
-        logService.logFailure(smsDTO, errorMessage);
-        emailService.sendSendingFailureEmail(smsDTO, errorMessage);
+    private void handleParsingException(String message) {
+        String subject = "Error! Failed to parse message from JianDaoYun";
+        String text = "Payload: \n" + message;
+        emailService.send(subject, text);
+        LOGGER.info("Sent parsing error email notification");
+    }
+
+    private void handleSendingException(SmsDTO smsDTO, String errorMessage) {
+        logError(smsDTO, errorMessage);
+        LOGGER.info("SMS delivery failure logged");
+
+        sendNotificationEmail(smsDTO, errorMessage);
+        LOGGER.info("SMS delivery failure email notification sent");
+    }
+
+    private void logError(SmsDTO smsDTO, String errorMessage) {
+        logService.logFailure(new SmsExceptionDTO(smsDTO, errorMessage));
+    }
+
+    private void sendNotificationEmail(SmsDTO smsDTO, String errorMessage) {
+        String subject = "Error! Failed to send sms to " + smsDTO.getPhoneNumber();
+        String text = "Recipient(s): " + smsDTO.getPhoneNumber() + "\n" +
+                "Template code: " + smsDTO.getTemplateCode() + "\n" +
+                "Payload: " + smsDTO.getParams() + "\n" +
+                "\n" +
+                "Error message: " + errorMessage;
+        emailService.send(subject, text);
+    }
+
+    private void sendQueueBlockingEmail() {
+        String subject = "Warning! Message queue size is larger than threshold, please check for potential issue";
+        String text = "";
+
+        emailService.send(subject,text);
+        LOGGER.info("Sent queue blocking email notification");
     }
 
 }

@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 import java.io.IOException;
@@ -43,19 +44,16 @@ public class SMSServiceTest {
     private LogService logService;
 
     @Captor
-    private ArgumentCaptor<SmsDTO> smsVOCaptor1;
+    private ArgumentCaptor<SmsDTO> aliyunAdapterCaptor;
 
     @Captor
-    private ArgumentCaptor<SmsDTO> smsVOCaptor2;
+    private ArgumentCaptor<SmsExceptionDTO> logServiceCaptor;
 
     @Captor
-    private ArgumentCaptor<SmsDTO> smsVOCaptor3;
+    private ArgumentCaptor<String> emailSubject;
 
     @Captor
-    private ArgumentCaptor<String> errorMessageCaptor1;
-
-    @Captor
-    private ArgumentCaptor<String> errorMessageCaptor2;
+    private ArgumentCaptor<String> emailText;
 
     @Test
     public void testSendHappyPath() throws IOException {
@@ -88,80 +86,101 @@ public class SMSServiceTest {
         SmsDTO smsDTO = new SmsDTO();
         Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
         queue.add(smsDTO);
-        Mockito.doNothing().when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
+        Mockito.doNothing().when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
 
         fixture.processQueue();
 
-        assertEquals(smsDTO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
     }
 
     @Test
     public void testProcessQueueClientException() throws ClientException {
-        SmsDTO smsDTO = new SmsDTO();
+        String phoneNumber = "12356";
+        String templateCode = "templateCode";
+        String params = "params";
+        SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
         Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
         queue.add(smsDTO);
         String errCode = "errCode";
         String errMsg = "errMsg";
         ClientException clientException = new ClientException(errCode, errMsg);
-        Mockito.doThrow(clientException).when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
+        Mockito.doThrow(clientException).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
+        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
 
-        assertEquals(smsDTO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsDTO, smsVOCaptor2.getValue());
-        assertEquals(errMsg, errorMessageCaptor1.getValue());
-        assertEquals(smsDTO, smsVOCaptor3.getValue());
-        assertEquals(errMsg, errorMessageCaptor2.getValue());
+        assertEquals(phoneNumber, logServiceCaptor.getValue().getPhoneNumber());
+        assertEquals(templateCode, logServiceCaptor.getValue().getTemplateCode());
+        assertEquals(params, logServiceCaptor.getValue().getParams());
+        assertEquals(errMsg, logServiceCaptor.getValue().getErrorMessage());
+        assertTrue(emailSubject.getValue().contains(phoneNumber));
+        assertTrue(emailText.getValue().contains(templateCode));
+        assertTrue(emailText.getValue().contains(params));
+        assertTrue(emailText.getValue().contains(errMsg));
     }
 
     @Test
     public void testProcessQueueSendSmsException() throws ClientException {
-        SmsDTO smsDTO = new SmsDTO();
+        String phoneNumber = "12356";
+        String templateCode = "templateCode";
+        String params = "params";
+        SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
         Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
         queue.add(smsDTO);
         String errMsg = "failure message";
         SendSmsResponse sendSmsResponse = new SendSmsResponse();
         sendSmsResponse.setMessage(errMsg);
         SendSmsException sendSmsException = new SendSmsException(sendSmsResponse);
-        Mockito.doThrow(sendSmsException).when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
+        Mockito.doThrow(sendSmsException).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
+        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
 
-        assertEquals(smsDTO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsDTO, smsVOCaptor2.getValue());
-        assertEquals(errMsg, errorMessageCaptor1.getValue());
-        assertEquals(smsDTO, smsVOCaptor3.getValue());
-        assertEquals(errMsg, errorMessageCaptor2.getValue());
+        assertEquals(phoneNumber, logServiceCaptor.getValue().getPhoneNumber());
+        assertEquals(templateCode, logServiceCaptor.getValue().getTemplateCode());
+        assertEquals(params, logServiceCaptor.getValue().getParams());
+        assertEquals(errMsg, logServiceCaptor.getValue().getErrorMessage());
+        assertTrue(emailSubject.getValue().contains(phoneNumber));
+        assertTrue(emailText.getValue().contains(templateCode));
+        assertTrue(emailText.getValue().contains(params));
+        assertTrue(emailText.getValue().contains(errMsg));
     }
 
     @Test
     public void testProcessGeneralException() throws ClientException {
-        SmsDTO smsDTO = new SmsDTO();
+        String phoneNumber = "12356";
+        String templateCode = "templateCode";
+        String params = "params";
+        SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
         Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
         queue.add(smsDTO);
         String errMsg = "exception message";
         Exception exception = new RuntimeException(errMsg);
-        Mockito.doThrow(exception).when(aliyunSMSAdapter).sendMessage(smsVOCaptor1.capture());
+        Mockito.doThrow(exception).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(smsVOCaptor2.capture(), errorMessageCaptor1.capture());
-        Mockito.verify(emailService, Mockito.times(1)).sendSendingFailureEmail(smsVOCaptor3.capture(), errorMessageCaptor2.capture());
+        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
+        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
 
-        assertEquals(smsDTO, smsVOCaptor1.getValue());
+        assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
-        assertEquals(smsDTO, smsVOCaptor2.getValue());
-        assertTrue(errorMessageCaptor1.getValue().contains(errMsg));
-        assertEquals(smsDTO, smsVOCaptor3.getValue());
-        assertTrue(errorMessageCaptor2.getValue().contains(errMsg));
+        assertEquals(phoneNumber, logServiceCaptor.getValue().getPhoneNumber());
+        assertEquals(templateCode, logServiceCaptor.getValue().getTemplateCode());
+        assertEquals(params, logServiceCaptor.getValue().getParams());
+        assertTrue(logServiceCaptor.getValue().getErrorMessage().contains(errMsg));
+        assertTrue(emailSubject.getValue().contains(phoneNumber));
+        assertTrue(emailText.getValue().contains(templateCode));
+        assertTrue(emailText.getValue().contains(params));
+        assertTrue(emailText.getValue().contains(errMsg));
     }
 }
