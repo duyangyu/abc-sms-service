@@ -12,6 +12,7 @@ import java.util.Map;
 @ConfigurationProperties
 public class FormMappings {
 
+    public static final String ROOT_PATH = "/";
     public static final String DEFAULT_PATH = "/data";
 
     private List<Form> forms;

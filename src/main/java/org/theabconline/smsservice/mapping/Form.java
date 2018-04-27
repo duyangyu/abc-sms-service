@@ -21,7 +21,8 @@ public class Form {
     }
 
     public String getPhoneNumberPath() {
-        return Strings.isNullOrEmpty(phoneNumberPath) ? FormMappings.DEFAULT_PATH : phoneNumberPath;
+        String actualPath = Strings.isNullOrEmpty(phoneNumberPath) ? FormMappings.DEFAULT_PATH : phoneNumberPath;
+        return FormMappings.ROOT_PATH.equals(actualPath) ? "" : actualPath;
     }
 
     /* Generated code */

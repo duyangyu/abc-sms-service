@@ -25,6 +25,11 @@ public class FormTest {
         assertEquals(FormMappings.DEFAULT_PATH, fixture.getPhoneNumberPath());
     }
 
+    @Test
+    public void testGetPathWithRoot() {
+        fixture.setPhoneNumberPath("/");
+        assertEquals("", fixture.getPhoneNumberPath());
+    }
 
     @Test
     public void testGetPathCustomized() {

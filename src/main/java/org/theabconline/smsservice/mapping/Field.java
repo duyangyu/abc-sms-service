@@ -10,7 +10,8 @@ public class Field {
 
     /* Custom code */
     public String getPath() {
-        return Strings.isNullOrEmpty(path) ? FormMappings.DEFAULT_PATH : path;
+        String actualPath = Strings.isNullOrEmpty(path) ? FormMappings.DEFAULT_PATH : path;
+        return FormMappings.ROOT_PATH.equals(actualPath) ? "" : actualPath;
     }
 
     /* Generated code */
