@@ -54,6 +54,12 @@ public class ParserService {
         }
     }
 
+    public String getFieldValue(String message, String path, String fieldName) throws IOException {
+        JsonNode jsonTree = mapper.readTree(message);
+
+        return jsonTree.at(path).get(fieldName).textValue();
+    }
+
     public List<SmsDTO> getSmsParams(String message) throws IOException {
         List<SmsDTO> smsDTOList = Lists.newArrayList();
         List<String> templateCodes = getTemplateCodes(message);
@@ -117,15 +123,9 @@ public class ParserService {
     }
 
     private String getFormId(String message) throws IOException {
-        String appId = getFieldValue(message, formIdPath, appIdFieldName);
         String entryId = getFieldValue(message, formIdPath, entryIdFieldName);
+        String appId = getFieldValue(message, formIdPath, appIdFieldName);
         return appId + entryId;
-    }
-
-    private String getFieldValue(String message, String path, String fieldName) throws IOException {
-        JsonNode jsonTree = mapper.readTree(message);
-
-        return jsonTree.at(path).get(fieldName).textValue();
     }
 
     private Form getForm(String formId) {

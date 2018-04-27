@@ -1,9 +1,9 @@
 package org.theabconline.smsservice.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.theabconline.smsservice.dto.SmsDTO;
@@ -15,7 +15,6 @@ import static org.junit.Assert.assertEquals;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
-@EnableAutoConfiguration
 public class ParserServiceTest {
 
     private static final String PAYLOAD_SINGLE = "{\"data\":{\"appId\":\"appId2\",\"entryId\":\"entryId2\",\"phoneNumberField3\":\"789\",\"field4\":\"field4\"}}";
@@ -59,5 +58,24 @@ public class ParserServiceTest {
         assertEquals(PHONE_NUMBER_2_MULTI, result2.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_2_MULTI, result2.getTemplateCode());
         assertEquals(PARAMS_2_MULTI, result2.getParams());
+    }
+
+    @Test
+    public void testGetFieldValue() throws IOException {
+        String message = "{\n" +
+                "  \"data\": {\n" +
+                "    \"key1\": \"value1\",\n" +
+                "    \"key2\": \"value2\"\n" +
+                "  },\n" +
+                "  \"key3\": \"value3\"\n" +
+                "}";
+
+        String value1 = fixture.getFieldValue(message, "/data", "key1");
+        String value2 = fixture.getFieldValue(message, "/data", "key2");
+        String value3 = fixture.getFieldValue(message, "", "key3");
+
+        assertEquals("value1", value1);
+        assertEquals("value2", value2);
+        assertEquals("value3", value3);
     }
 }
