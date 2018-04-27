@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.UserRegistrationDTO;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,6 +30,12 @@ public class ParserServiceTest {
     private static final String TEMPLATE_CODE_2_MULTI = "template2";
     private static final String PARAMS_1_MULTI = "{\"key1\":\"field1\",\"key2\":\"field2\"}";
     private static final String PARAMS_2_MULTI = "{\"key3\":\"field3\"}";
+
+    private static final String USER_REGISTRATION_PAYLOAD = "{\"data\":{\"nameField\":\"name\",\"emailField\":\"email\",\"mobileField\":\"mobile\"}}";
+    private static final String USER_REGISTRATION_NAME = "name";
+    private static final String USER_REGISTRATION_EMAIL = "email";
+    private static final String USER_REGISTRATION_MOBILE = "mobile";
+
 
     @Autowired
     ParserService fixture;
@@ -60,21 +67,11 @@ public class ParserServiceTest {
     }
 
     @Test
-    public void testGetFieldValue() throws IOException {
-        String message = "{\n" +
-                "  \"data\": {\n" +
-                "    \"key1\": \"value1\",\n" +
-                "    \"key2\": \"value2\"\n" +
-                "  },\n" +
-                "  \"key3\": \"value3\"\n" +
-                "}";
+    public void testGetUserParams() throws IOException {
+        UserRegistrationDTO dto = fixture.getUserParams(USER_REGISTRATION_PAYLOAD);
 
-        String value1 = fixture.getFieldValue(message, "/data", "key1");
-        String value2 = fixture.getFieldValue(message, "/data", "key2");
-        String value3 = fixture.getFieldValue(message, "", "key3");
-
-        assertEquals("value1", value1);
-        assertEquals("value2", value2);
-        assertEquals("value3", value3);
+        assertEquals(USER_REGISTRATION_NAME, dto.getName());
+        assertEquals(USER_REGISTRATION_EMAIL, dto.getEmail());
+        assertEquals(USER_REGISTRATION_MOBILE, dto.getMobile());
     }
 }

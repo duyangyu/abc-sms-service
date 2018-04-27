@@ -4,8 +4,6 @@ import com.google.common.base.Strings;
 
 public class RegistrationForm {
 
-    private String appId;
-    private String entryId;
     private String fieldsPath;
     private String nameFieldName;
     private String emailFieldName;
@@ -18,22 +16,6 @@ public class RegistrationForm {
     }
 
     /* Generated code */
-    public String getAppId() {
-        return appId;
-    }
-
-    public void setAppId(String appId) {
-        this.appId = appId;
-    }
-
-    public String getEntryId() {
-        return entryId;
-    }
-
-    public void setEntryId(String entryId) {
-        this.entryId = entryId;
-    }
-
     public void setFieldsPath(String fieldsPath) {
         this.fieldsPath = fieldsPath;
     }

@@ -10,10 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.SmsDTO;
-import org.theabconline.smsservice.mapping.Field;
-import org.theabconline.smsservice.mapping.Form;
-import org.theabconline.smsservice.mapping.FormMappings;
-import org.theabconline.smsservice.mapping.Recipient;
+import org.theabconline.smsservice.dto.UserRegistrationDTO;
+import org.theabconline.smsservice.mapping.*;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -54,12 +52,6 @@ public class ParserService {
         }
     }
 
-    public String getFieldValue(String message, String path, String fieldName) throws IOException {
-        JsonNode jsonTree = mapper.readTree(message);
-
-        return jsonTree.at(path).get(fieldName).textValue();
-    }
-
     public List<SmsDTO> getSmsParams(String message) throws IOException {
         List<SmsDTO> smsDTOList = Lists.newArrayList();
         List<String> templateCodes = getTemplateCodes(message);
@@ -75,6 +67,21 @@ public class ParserService {
         }
 
         return smsDTOList;
+    }
+
+    public UserRegistrationDTO getUserParams(String message) throws IOException {
+        UserRegistrationDTO result = new UserRegistrationDTO();
+        RegistrationForm registrationForm = formMappings.getRegistrationForm();
+
+        String name = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getNameFieldName());
+        String email = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getEmailFieldName());
+        String mobile = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getMobileFieldName());
+
+        result.setName(name);
+        result.setEmail(email);
+        result.setMobile(mobile);
+
+        return result;
     }
 
     private List<String> getTemplateCodes(String message) throws IOException {
@@ -126,6 +133,12 @@ public class ParserService {
         String entryId = getFieldValue(message, formIdPath, entryIdFieldName);
         String appId = getFieldValue(message, formIdPath, appIdFieldName);
         return appId + entryId;
+    }
+
+    private String getFieldValue(String message, String path, String fieldName) throws IOException {
+        JsonNode jsonTree = mapper.readTree(message);
+
+        return jsonTree.at(path).get(fieldName).textValue();
     }
 
     private Form getForm(String formId) {
