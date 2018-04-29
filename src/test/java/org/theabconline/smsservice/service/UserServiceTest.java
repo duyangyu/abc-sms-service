@@ -213,4 +213,34 @@ public class UserServiceTest {
         assertEquals(emailContent, emailContentCaptor.getValue());
         assertEquals(UserService.UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE, failureDTOArgumentCaptor.getValue().getErrorMessage());
     }
+
+    @Test
+    public void testProcessQueueUserCreationException() throws JsonProcessingException {
+        String accessToken = "accessToken";
+        ReflectionTestUtils.setField(fixture, "accessToken", accessToken);
+        ReflectionTestUtils.setField(fixture, "expirationTime", System.currentTimeMillis() + 1000000);
+        UserRegistrationDTO userRegistrationDTO = new UserRegistrationDTO();
+        messageQueue.add(userRegistrationDTO);
+        UserRegistrationResponseDTO responseDTO = new UserRegistrationResponseDTO();
+        responseDTO.setErrcode(1);
+        String userCreationErrorMessage = "error message";
+        responseDTO.setErrmsg(userCreationErrorMessage);
+        ResponseEntity<UserRegistrationResponseDTO> response = new ResponseEntity<>(responseDTO, HttpStatus.OK);
+        ArgumentCaptor<Map> requestParamsCaptor = ArgumentCaptor.forClass(Map.class);
+        Mockito.when(restTemplate.postForEntity(Mockito.eq(CREATE_USER_URL), Mockito.eq(userRegistrationDTO), Mockito.eq(UserRegistrationResponseDTO.class), requestParamsCaptor.capture()))
+                .thenReturn(response);
+        ArgumentCaptor<String> emailContentCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<UserRegistrationFailureDTO> failureLogCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
+
+        fixture.processQueue();
+
+        Map<String, String> requestParams = requestParamsCaptor.getValue();
+        assertEquals(0, messageQueue.size());
+        assertEquals(accessToken, requestParams.get(UserService.ACCESS_TOKEN_KEY));
+        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), emailContentCaptor.capture());
+        Mockito.verify(logService, Mockito.times(1)).logFailure(failureLogCaptor.capture());
+        assertTrue(emailContentCaptor.getValue().contains(userCreationErrorMessage));
+        assertEquals(userCreationErrorMessage, failureLogCaptor.getValue().getErrorMessage());
+
+    }
 }
