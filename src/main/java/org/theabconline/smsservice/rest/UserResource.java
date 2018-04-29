@@ -3,25 +3,25 @@ package org.theabconline.smsservice.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.theabconline.smsservice.service.SMSService;
+import org.theabconline.smsservice.service.UserService;
 
 @RequestMapping("/api")
 @RestController
-public class SMSResource {
+public class UserResource {
 
-    private final SMSService smsService;
+    private final UserService userService;
 
     @Autowired
-    public SMSResource(SMSService smsService) {
-        this.smsService = smsService;
+    public UserResource(UserService userService) {
+        this.userService = userService;
     }
 
-    @RequestMapping(value = "/sms", method = RequestMethod.POST)
-    public ResponseEntity sendMessage(@RequestParam String timestamp,
+    @RequestMapping(value = "/user", method = RequestMethod.POST)
+    public ResponseEntity createUser(@RequestParam String timestamp,
                                       @RequestParam String nonce,
                                       @RequestHeader(value = "X-JDY-Signature") String sha1,
                                       @RequestBody String message) {
-        smsService.send(message, timestamp, nonce, sha1);
+        userService.createUser(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();
     }
