@@ -13,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.theabconline.smsservice.dto.AccessTokenDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
+import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
 import org.theabconline.smsservice.dto.UserRegistrationResponseDTO;
+import org.theabconline.smsservice.exception.UpdateTokenException;
+import org.theabconline.smsservice.exception.UserCreationException;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -30,6 +33,9 @@ public class UserService {
     public static final String CORP_ID_KEY = "corpid";
     public static final String CORP_SECRET_KEY = "corpsecret";
     public static final String ACCESS_TOKEN_KEY = "access_token";
+    public static final String CREATED_MESSAGE = "created";
+    public static final String UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE = "Unable to update access token";
+    public static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
 
     @Value("${aliyun.corpid}")
     private String corpId;
@@ -52,6 +58,8 @@ public class UserService {
 
     private final LogService logService;
 
+    private final ValidationService validationService;
+
     private final RestTemplate restTemplate;
 
     private final ObjectMapper objectMapper;
@@ -67,20 +75,27 @@ public class UserService {
                        RestTemplate restTemplate,
                        EmailService emailService,
                        LogService logService,
-                       ObjectMapper objectMapper) {
+                       ValidationService validationService, ObjectMapper objectMapper) {
         this.parserService = parserService;
         this.restTemplate = restTemplate;
         this.emailService = emailService;
         this.logService = logService;
+        this.validationService = validationService;
         this.objectMapper = objectMapper;
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public void createUser(String message) {
+    public void createUser(String message, String timestamp, String nonce, String sha1) {
+        if (!validationService.isValid(message, timestamp, nonce, sha1)) {
+            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
+            LOGGER.error("message: {}", message);
+            throw new RuntimeException("Invalid Message");
+        }
         try {
             UserRegistrationDTO userRegistrationDTO = parserService.getUserParams(message);
             userRegistrationDTO.setUserId(String.valueOf(System.currentTimeMillis())); // this should be ok for now since we only have 1 instance
             userRegistrationDTO.setDepartment(departmentId);
+            messageQueue.add(userRegistrationDTO);
         } catch (IOException e) {
             handleParsingException(message);
         }
@@ -92,23 +107,30 @@ public class UserService {
         if (userRegistrationDTO != null) {
             try {
                 updateAccessTokenIfNecessary();
-            } catch (Exception e) {
-                emailService.send("Failed to update access token", objectMapper.writeValueAsString(userRegistrationDTO));
-                logService.logFailure(userRegistrationDTO);
-                LOGGER.debug("Failed to create user due to unable to update access token, user: {}", objectMapper.writeValueAsString(userRegistrationDTO));
-                return;
-            }
-            Map<String, String> requestParams = new HashMap<>();
-            requestParams.put(ACCESS_TOKEN_KEY, accessToken);
-            ResponseEntity<UserRegistrationResponseDTO> responseEntity = restTemplate.postForEntity(createUserUrl, userRegistrationDTO, UserRegistrationResponseDTO.class, requestParams);
-            if (responseEntity.getStatusCodeValue() != 200 || responseEntity.getBody().getErrcode() != 0) {
-                emailService.send("Failed to create user", objectMapper.writeValueAsString(userRegistrationDTO));
-                logService.logFailure(userRegistrationDTO);
-                LOGGER.error("Failed to create user due api call failure, error message: {}", responseEntity.getBody().getErrmsg());
-                LOGGER.debug("User: {}", objectMapper.writeValueAsString(userRegistrationDTO));
+                sendCreateUserRequest(userRegistrationDTO);
+            } catch (UpdateTokenException e) {
+                handleUpdateTokenException(userRegistrationDTO);
+            } catch (UserCreationException e) {
+                handleUserCreationException(userRegistrationDTO, e);
             }
         }
+    }
 
+    private void handleUserCreationException(UserRegistrationDTO userRegistrationDTO, UserCreationException e) throws JsonProcessingException {
+        String errorMessage = e.getMessage();
+        String userRegistrationDTOString = objectMapper.writeValueAsString(userRegistrationDTO);
+        String text = "Error message: " + errorMessage + "\n"
+                + "payload: " + userRegistrationDTOString;
+        emailService.send("Failed to create user", text);
+        logService.logFailure(new UserRegistrationFailureDTO(userRegistrationDTO, errorMessage));
+        LOGGER.error("Failed to create user, payload: {}, error message: {}", userRegistrationDTOString);
+        LOGGER.debug("User: {}", userRegistrationDTOString);
+    }
+
+    private void handleUpdateTokenException(UserRegistrationDTO userRegistrationDTO) throws JsonProcessingException {
+        emailService.send("Failed to update access token", objectMapper.writeValueAsString(userRegistrationDTO));
+        logService.logFailure(new UserRegistrationFailureDTO(userRegistrationDTO, UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE));
+        LOGGER.debug("Failed to create user due to unable to update access token, user: {}", objectMapper.writeValueAsString(userRegistrationDTO));
     }
 
     private void updateAccessTokenIfNecessary() {
@@ -118,11 +140,13 @@ public class UserService {
         Map<String, String> requestParams = new HashMap<>();
         requestParams.put(CORP_ID_KEY, corpId);
         requestParams.put(CORP_SECRET_KEY, corpSecret);
-        AccessTokenDTO accessTokenDTO = restTemplate.getForEntity(accessTokenUrl, AccessTokenDTO.class, requestParams).getBody();
+        AccessTokenDTO accessTokenDTO = restTemplate.getForEntity(accessTokenUrl,
+                AccessTokenDTO.class,
+                requestParams).getBody();
         if (accessTokenDTO == null || accessTokenDTO.getAccess_token() == null ||
-                accessTokenDTO.getErrcode() != 0 || !"ok".equals(accessTokenDTO.getErrmsg())) {
+                accessTokenDTO.getErrcode() != 0 || !ACCESS_TOKEN_OK_MESSAGE.equals(accessTokenDTO.getErrmsg())) {
             LOGGER.error("Failed to update access token for creating new user");
-            throw new RuntimeException("Failed to update access token for creating new user");
+            throw new UpdateTokenException("Failed to update access token for creating new user");
         }
         this.accessToken = accessTokenDTO.getAccess_token();
         Long expireInMillis = accessTokenDTO.getExpires_in() * 1000; // unit of expires_in field is second
@@ -130,10 +154,24 @@ public class UserService {
         LOGGER.debug("Access token updated, token: {}, expire time: {}", accessToken, expirationTime);
     }
 
+    private void sendCreateUserRequest(UserRegistrationDTO userRegistrationDTO) {
+        Map<String, String> requestParams = new HashMap<>();
+        requestParams.put(ACCESS_TOKEN_KEY, accessToken);
+        ResponseEntity<UserRegistrationResponseDTO> responseEntity = restTemplate.postForEntity(createUserUrl,
+                        userRegistrationDTO,
+                        UserRegistrationResponseDTO.class,
+                        requestParams);
+        if (responseEntity.getStatusCodeValue() != 200 ||
+                responseEntity.getBody().getErrcode() != 0 ||
+                !CREATED_MESSAGE.equals(responseEntity.getBody().getErrmsg())) {
+            throw new UserCreationException(responseEntity.getBody().getErrmsg());
+        }
+    }
+
     private void handleParsingException(String message) {
         String subject = "Error! Failed to parse user registration message from JianDaoYun";
         String text = "Payload: \n" + message;
         emailService.send(subject, text);
-        LOGGER.info("Sent parsing error email notification");
+        LOGGER.debug("Sent parsing error email notification");
     }
 }

@@ -8,6 +8,16 @@ public class UserRegistrationDTO {
     private String email;
     private String mobile;
 
+    public UserRegistrationDTO() {}
+
+    public UserRegistrationDTO(String userId, String name, Integer department, String email, String mobile) {
+        this.userId = userId;
+        this.name = name;
+        this.department = department;
+        this.email = email;
+        this.mobile = mobile;
+    }
+
     public String getUserId() {
         return userId;
     }

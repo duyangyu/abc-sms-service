@@ -2,7 +2,7 @@ package org.theabconline.smsservice.service;
 
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
-import org.theabconline.smsservice.dto.UserRegistrationDTO;
+import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -24,13 +24,14 @@ public class LogService {
         writeToFile(SMS_LOG_FILE, sb.toString());
     }
 
-    public void logFailure(UserRegistrationDTO userRegistrationDTO) {
+    public void logFailure(UserRegistrationFailureDTO userRegistrationFailureDTO) {
         StringBuilder sb = new StringBuilder();
-        sb.append(userRegistrationDTO.getUserId()).append(";")
-                .append(userRegistrationDTO.getName()).append(";")
-                .append(userRegistrationDTO.getDepartment()).append(";")
-                .append(userRegistrationDTO.getEmail()).append(";")
-                .append(userRegistrationDTO.getMobile())
+        sb.append(userRegistrationFailureDTO.getUserId()).append(";")
+                .append(userRegistrationFailureDTO.getName()).append(";")
+                .append(userRegistrationFailureDTO.getDepartment()).append(";")
+                .append(userRegistrationFailureDTO.getEmail()).append(";")
+                .append(userRegistrationFailureDTO.getMobile()).append(";")
+                .append(userRegistrationFailureDTO.getErrorMessage())
                 .append("\n");
         writeToFile(REGISTRATION_LOG_FILE, sb.toString());
     }
