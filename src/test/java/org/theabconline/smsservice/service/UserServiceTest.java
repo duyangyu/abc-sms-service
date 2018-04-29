@@ -241,6 +241,19 @@ public class UserServiceTest {
         Mockito.verify(logService, Mockito.times(1)).logFailure(failureLogCaptor.capture());
         assertTrue(emailContentCaptor.getValue().contains(userCreationErrorMessage));
         assertEquals(userCreationErrorMessage, failureLogCaptor.getValue().getErrorMessage());
+    }
 
+    @Test
+    public void testCheckBlocking() {
+        UserRegistrationDTO dto = new UserRegistrationDTO();
+        Integer threshold = 2;
+        ReflectionTestUtils.setField(fixture, "blockingThreshold", threshold);
+        messageQueue.add(dto);
+        messageQueue.add(dto);
+        messageQueue.add(dto);
+
+        fixture.checkBlocking();
+
+        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), Mockito.anyString());
     }
 }

@@ -130,11 +130,11 @@ public class SMSService {
     }
 
     private void sendQueueBlockingEmail() {
-        String subject = "Warning! Message queue size is larger than threshold, please check for potential issue";
+        String subject = "Warning! SMS message queue size is larger than threshold, please check for potential issue";
         String text = "";
 
         emailService.send(subject,text);
-        LOGGER.info("Sent queue blocking email notification");
+        LOGGER.info("Sent sms queue blocking email notification");
     }
 
 }

@@ -52,6 +52,9 @@ public class UserService {
     @Value("${wechat.creatUserAPI}")
     private String createUserUrl;
 
+    @Value("${checkBlocking.threshold:10}")
+    private Integer blockingThreshold;
+
     private final ParserService parserService;
 
     private final EmailService emailService;
@@ -116,6 +119,13 @@ public class UserService {
         }
     }
 
+    @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
+    public void checkBlocking() {
+        if (messageQueue.size() > blockingThreshold) {
+            sendQueueBlockingEmail();
+        }
+    }
+
     private void handleUserCreationException(UserRegistrationDTO userRegistrationDTO, UserCreationException e) throws JsonProcessingException {
         String errorMessage = e.getMessage();
         String userRegistrationDTOString = objectMapper.writeValueAsString(userRegistrationDTO);
@@ -173,5 +183,13 @@ public class UserService {
         String text = "Payload: \n" + message;
         emailService.send(subject, text);
         LOGGER.debug("Sent parsing error email notification");
+    }
+
+    private void sendQueueBlockingEmail() {
+        String subject = "Warning! User creation message queue size is larger than threshold, please check for potential issue";
+        String text = "";
+
+        emailService.send(subject,text);
+        LOGGER.info("Sent user creation queue blocking email notification");
     }
 }

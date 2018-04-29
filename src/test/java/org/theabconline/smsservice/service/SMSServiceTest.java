@@ -181,4 +181,19 @@ public class SMSServiceTest {
         assertTrue(emailText.getValue().contains(params));
         assertTrue(emailText.getValue().contains(errMsg));
     }
+
+    @Test
+    public void testCheckBlocking() {
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        Integer threshold = 2;
+        ReflectionTestUtils.setField(fixture, "blockingThreshold", threshold);
+        SmsDTO smsDTO = new SmsDTO();
+        queue.add(smsDTO);
+        queue.add(smsDTO);
+        queue.add(smsDTO);
+
+        fixture.checkBlocking();
+
+        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), Mockito.anyString());
+    }
 }
