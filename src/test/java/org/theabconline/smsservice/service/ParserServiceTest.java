@@ -1,5 +1,7 @@
 package org.theabconline.smsservice.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -52,14 +55,17 @@ public class ParserServiceTest {
     }
 
     @Test
-    public void testGetSimsParamsMultipleRecipients() throws IOException {
+    public void testGetSmsParamsMultipleRecipients() throws IOException {
+        ObjectMapper objectMapper = new ObjectMapper();
         List<SmsDTO> voList = fixture.getSmsParams(PAYLOAD_MULTIPLE);
 
         assertEquals(2, voList.size());
         SmsDTO result1 = voList.get(0);
         assertEquals(PHONE_NUMBER_1_MULTI, result1.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_1_MULTI, result1.getTemplateCode());
-        assertEquals(PARAMS_1_MULTI, result1.getParams());
+        JsonNode expectedJson = objectMapper.readTree(PARAMS_1_MULTI);
+        JsonNode actualJson = objectMapper.readTree(result1.getParams());
+        assertTrue(expectedJson.equals(actualJson));
         SmsDTO result2 = voList.get(1);
         assertEquals(PHONE_NUMBER_2_MULTI, result2.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_2_MULTI, result2.getTemplateCode());
