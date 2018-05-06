@@ -56,6 +56,7 @@ public class SMSServiceTest {
     @Test
     public void testSendHappyPath() throws IOException {
         SmsDTO smsDTO = new SmsDTO();
+        smsDTO.setPhoneNumber("phone number");
         List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
 
         Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
@@ -67,6 +68,21 @@ public class SMSServiceTest {
         Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
         assertEquals(smsDTOList.size(), queue.size());
         assertEquals(smsDTO, queue.poll());
+    }
+
+    @Test
+    public void testSendWithNoPhoneNumber() throws IOException {
+        SmsDTO smsDTO = new SmsDTO();
+        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
+
+        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(true);
+        Mockito.when(parserService.getSmsParams(Mockito.anyString())).thenReturn(smsDTOList);
+
+        fixture.send("message", "timestamp", "nonce", "sha1");
+
+        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        assertEquals(0, queue.size());
     }
 
     @Test(expected = RuntimeException.class)

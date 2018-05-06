@@ -1,6 +1,7 @@
 package org.theabconline.smsservice.service;
 
 import com.aliyuncs.exceptions.ClientException;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,6 +63,9 @@ public class SMSService {
         try {
             List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
             for (SmsDTO smsDTO : smsDTOList) {
+                if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
+                    continue;
+                }
                 messageQueue.add(smsDTO);
                 LOGGER.info("Message added to queue, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
             }
