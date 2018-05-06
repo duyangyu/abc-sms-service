@@ -33,5 +33,7 @@ public class UserResource {
     @RequestMapping(value = "/test", method = RequestMethod.POST)
     public ResponseEntity test(@RequestBody String message) {
         LOGGER.info(message);
+
+        return ResponseEntity.ok().build();
     }
 }
