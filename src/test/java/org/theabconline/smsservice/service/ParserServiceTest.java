@@ -22,6 +22,7 @@ public class ParserServiceTest {
 
     private static final String PAYLOAD_SINGLE = "{\"data\":{\"appId\":\"appId2\",\"entryId\":\"entryId2\",\"phoneNumberField3\":\"789\",\"field4\":\"field4\"}}";
     private static final String PAYLOAD_MULTIPLE = "{\"data\":{\"appId\":\"appId1\",\"entryId\":\"entryId1\",\"phoneNumberField1\":\"123\",\"phoneNumberField2\":\"456\",\"field1\":\"field1\",\"field2\":\"field2\",\"field3\":\"field3\"}}";
+    private static final String PAYLOAD_INVALID = "{\"data\":{\"appId\":\"appId3\",\"entryId\":\"entryId3\"}}";
 
     private static final String PHONE_NUMBER_SINGLE = "789";
     private static final String TEMPLATE_CODE_SINGLE = "template3";
@@ -79,5 +80,10 @@ public class ParserServiceTest {
         assertEquals(USER_REGISTRATION_NAME, dto.getName());
         assertEquals(USER_REGISTRATION_EMAIL, dto.getEmail());
         assertEquals(USER_REGISTRATION_MOBILE, dto.getMobile());
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testInvalidMapping() throws IOException {
+        fixture.getSmsParams(PAYLOAD_INVALID);
     }
 }
