@@ -138,7 +138,15 @@ public class ParserService {
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
         JsonNode jsonTree = mapper.readTree(message);
 
-        return jsonTree.at(path).get(fieldName).textValue();
+        String fieldValue;
+        try {
+            fieldValue = jsonTree.at(path).get(fieldName).textValue();
+        } catch (Exception e) {
+            LOGGER.error("Unable to get field value. path: {}, field name: {}, message: {}", path, fieldName, message);
+            throw e;
+        }
+
+        return fieldValue;
     }
 
     private Form getForm(String formId) {
