@@ -54,11 +54,11 @@ public class SMSService {
     }
 
     public void send(String message, String timestamp, String nonce, String sha1) {
-//        if (!validationService.isValid(message, timestamp, nonce, sha1)) {
-//            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
-//            LOGGER.error("message: {}", message);
-//            throw new RuntimeException("Invalid Message");
-//        }
+        if (!validationService.isValid(message, timestamp, nonce, sha1)) {
+            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
+            LOGGER.error("message: {}", message);
+            throw new RuntimeException("Invalid Message");
+        }
 
         try {
             List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
@@ -137,7 +137,7 @@ public class SMSService {
         String subject = "Warning! SMS message queue size is larger than threshold, please check for potential issue";
         String text = "";
 
-        emailService.send(subject,text);
+        emailService.send(subject, text);
         LOGGER.info("Sent sms queue blocking email notification");
     }
 

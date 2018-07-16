@@ -8,7 +8,8 @@ public class UserRegistrationDTO {
     private String email;
     private String mobile;
 
-    public UserRegistrationDTO() {}
+    public UserRegistrationDTO() {
+    }
 
     public UserRegistrationDTO(String userId, String name, Integer department, String email, String mobile) {
         this.userId = userId;

@@ -18,9 +18,9 @@ public class UserResource {
 
     @RequestMapping(value = "/user", method = RequestMethod.POST)
     public ResponseEntity createUser(@RequestParam String timestamp,
-                                      @RequestParam String nonce,
-                                      @RequestHeader(value = "X-JDY-Signature") String sha1,
-                                      @RequestBody String message) {
+                                     @RequestParam String nonce,
+                                     @RequestHeader(value = "X-JDY-Signature") String sha1,
+                                     @RequestBody String message) {
         userService.createUser(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();

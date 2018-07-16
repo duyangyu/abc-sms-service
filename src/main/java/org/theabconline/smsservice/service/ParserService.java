@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.SmsDTO;
-import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 import org.theabconline.smsservice.mapping.*;
 
@@ -62,41 +61,40 @@ public class ParserService {
         FormMetadata formMetadata = mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
         for (SmsTemplate smsTemplate : formMetadata.getSmsTemplates()) {
             String smsTemplateCode = smsTemplate.getSmsTemplateCode();
-            List<String> phoneNumbers = getPhoneNumbers(message, smsTemplate.getPhoneNumbersWidget());
+            String phoneNumbers = getPhoneNumbers(message, smsTemplate.getPhoneNumbersWidget());
             Map<String, String> params = Maps.newHashMap();
             for (FieldMapping fieldMapping : smsTemplate.getFieldMappings()) {
                 String fieldValue = getFieldValue(message, fieldMapping.getWidget());
                 params.put(fieldMapping.getSmsField(), fieldValue);
             }
-            SmsDTO smsDTO = new SmsDTO(Joiner.on(",").join(phoneNumbers), smsTemplateCode, mapper.writeValueAsString(params));
+            SmsDTO smsDTO = new SmsDTO(phoneNumbers, smsTemplateCode, mapper.writeValueAsString(params));
             smsDTOList.add(smsDTO);
         }
-//        List<String> templateCodes = getTemplateCodes(message);
-//        List<String> phoneNumbers = getPhoneNumbers(message);
-//        List<String> smsParams = getJsonStrings(message);
-
-//        for (int i = 0; i < templateCodes.size(); i++) {
-//            String phoneNumber = phoneNumbers.get(i);
-//            String templateCode = templateCodes.get(i);
-//            String smsParam = smsParams.get(i);
-//
-//            smsDTOList.add(new SmsDTO(phoneNumber, templateCode, smsParam));
-//        }
 
         return smsDTOList;
     }
 
-    private List<String> getPhoneNumbers(String message, String phoneNumbersWidget) {
-        return Lists.newArrayList();
+    private String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
+        String result;
+        JsonNode phoneNumberField = mapper.readTree(message).at(FormMappings.DEFAULT_PATH).get(phoneNumbersWidget);
+
+        if (phoneNumberField.isArray()) {
+            List phoneNumberList = mapper.convertValue(phoneNumberField, List.class);
+            result = Joiner.on(",").join(phoneNumberList);
+        } else {
+            result = getFieldValue(message, phoneNumbersWidget);
+        }
+
+        return result;
     }
 
     public UserRegistrationDTO getUserParams(String message) throws IOException {
         UserRegistrationDTO result = new UserRegistrationDTO();
         RegistrationForm registrationForm = formMappings.getRegistrationForm();
 
-        String name = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getNameFieldName());
-        String email = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getEmailFieldName());
-        String mobile = getFieldValue(message, registrationForm.getFieldsPath(), registrationForm.getMobileFieldName());
+        String name = getFieldValue(message, registrationForm.getNameFieldName());
+        String email = getFieldValue(message, registrationForm.getEmailFieldName());
+        String mobile = getFieldValue(message, registrationForm.getMobileFieldName());
 
         result.setName(name);
         result.setEmail(email);
@@ -104,51 +102,6 @@ public class ParserService {
 
         return result;
     }
-
-//    private List<String> getTemplateCodes(String message) throws IOException {
-//        return idFormsMap.get(getFormId(message)).getTemplateCodes();
-//    }
-//
-//    private List<String> getPhoneNumbers(String message) throws IOException {
-//        List<String> phoneNumbers = Lists.newArrayList();
-//        Form form = getForm(getFormId(message));
-//        String phoneNumberPath = form.getPhoneNumberPath();
-//        List<String> phoneNumberFieldNames = form.getPhoneNumberFieldNames();
-//        for(String phoneNumberFieldName : phoneNumberFieldNames) {
-//            phoneNumbers.add(getFieldValue(message, phoneNumberPath, phoneNumberFieldName));
-//        }
-//
-//        return phoneNumbers;
-//
-//    }
-//
-//    private List<String> getJsonStrings(String message) throws IOException {
-//        List<String> jsonStrings = Lists.newArrayList();
-//        Form form = getForm(getFormId(message));
-//        List<Recipient> recipients = formMappings.getMappings().get(form.getName()).getRecipients();
-//        for (Recipient recipient : recipients) {
-//            List<Field> fields = recipient.getFields();
-//            String jsonString = assembleJsonString(fields, message);
-//            LOGGER.debug("JSON string assembled: {}", jsonString);
-//            jsonStrings.add(jsonString);
-//        }
-//
-//        return jsonStrings;
-//    }
-//
-//    private String assembleJsonString(List<Field> fields, String message) throws IOException {
-//        Map<String, String> keyValuePairs = Maps.newHashMap();
-//
-//        for (Field field : fields) {
-//            String path = field.getPath();
-//            String fieldName = field.getFieldName();
-//            String templateKey = field.getTemplateKey();
-//            String value = getFieldValue(message, path, fieldName);
-//            keyValuePairs.put(templateKey, value);
-//        }
-//
-//        return mapper.writeValueAsString(keyValuePairs);
-//    }
 
     private String getFormId(String message) throws IOException {
         String entryId = getFieldValue(message, formIdPath, entryIdFieldName);

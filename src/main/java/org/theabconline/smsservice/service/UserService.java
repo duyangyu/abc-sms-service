@@ -36,39 +36,25 @@ public class UserService {
     public static final String CREATED_MESSAGE = "created";
     public static final String UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE = "Unable to update access token";
     public static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
-
+    private final ParserService parserService;
+    private final EmailService emailService;
+    private final LogService logService;
+    private final ValidationService validationService;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final Queue<UserRegistrationDTO> messageQueue;
     @Value("${aliyun.corpid}")
     private String corpId;
-
     @Value("${aliyun.corpsecret")
     private String corpSecret;
-
     @Value("${wechat.departmentId:2}")
     private Integer departmentId;
-
     @Value("${wechat.accessTokenAPI}")
     private String accessTokenUrl;
-
     @Value("${wechat.creatUserAPI}")
     private String createUserUrl;
-
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
-
-    private final ParserService parserService;
-
-    private final EmailService emailService;
-
-    private final LogService logService;
-
-    private final ValidationService validationService;
-
-    private final RestTemplate restTemplate;
-
-    private final ObjectMapper objectMapper;
-
-    private final Queue<UserRegistrationDTO> messageQueue;
-
     private String accessToken;
 
     private Long expirationTime;
@@ -168,9 +154,9 @@ public class UserService {
         Map<String, String> requestParams = new HashMap<>();
         requestParams.put(ACCESS_TOKEN_KEY, accessToken);
         ResponseEntity<UserRegistrationResponseDTO> responseEntity = restTemplate.postForEntity(createUserUrl,
-                        userRegistrationDTO,
-                        UserRegistrationResponseDTO.class,
-                        requestParams);
+                userRegistrationDTO,
+                UserRegistrationResponseDTO.class,
+                requestParams);
         if (responseEntity.getStatusCodeValue() != 200 ||
                 responseEntity.getBody().getErrcode() != 0 ||
                 !CREATED_MESSAGE.equals(responseEntity.getBody().getErrmsg())) {
@@ -189,7 +175,7 @@ public class UserService {
         String subject = "Warning! User creation message queue size is larger than threshold, please check for potential issue";
         String text = "";
 
-        emailService.send(subject,text);
+        emailService.send(subject, text);
         LOGGER.info("Sent user creation queue blocking email notification");
     }
 }
