@@ -54,11 +54,11 @@ public class SMSService {
     }
 
     public void send(String message, String timestamp, String nonce, String sha1) {
-        if (!validationService.isValid(message, timestamp, nonce, sha1)) {
-            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
-            LOGGER.error("message: {}", message);
-            throw new RuntimeException("Invalid Message");
-        }
+//        if (!validationService.isValid(message, timestamp, nonce, sha1)) {
+//            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
+//            LOGGER.error("message: {}", message);
+//            throw new RuntimeException("Invalid Message");
+//        }
 
         try {
             List<SmsDTO> smsDTOList = parserService.getSmsParams(message);

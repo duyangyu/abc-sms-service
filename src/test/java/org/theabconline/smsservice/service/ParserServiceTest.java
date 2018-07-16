@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
+import org.theabconline.smsservice.mapping.FormMetadata;
 
 import java.io.IOException;
 import java.util.List;
@@ -86,4 +87,5 @@ public class ParserServiceTest {
     public void testInvalidMapping() throws IOException {
         fixture.getSmsParams(PAYLOAD_INVALID);
     }
+
 }

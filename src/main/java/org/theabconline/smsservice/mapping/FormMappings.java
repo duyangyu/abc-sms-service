@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 @Configuration
-@PropertySource("classpath:form-mapping.properties")
+@PropertySource("classpath:form-mappings.properties")
 @ConfigurationProperties
 public class FormMappings {
 
@@ -16,7 +16,6 @@ public class FormMappings {
     public static final String DEFAULT_PATH = "/data";
 
     private List<Form> forms;
-    private Map<String, Recipients> mappings;
     private RegistrationForm registrationForm;
 
     public List<Form> getForms() {
@@ -25,14 +24,6 @@ public class FormMappings {
 
     public void setForms(List<Form> forms) {
         this.forms = forms;
-    }
-
-    public Map<String, Recipients> getMappings() {
-        return mappings;
-    }
-
-    public void setMappings(Map<String, Recipients> mappings) {
-        this.mappings = mappings;
     }
 
     public RegistrationForm getRegistrationForm() {
