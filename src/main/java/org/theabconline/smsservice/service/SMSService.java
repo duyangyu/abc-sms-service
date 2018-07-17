@@ -61,6 +61,7 @@ public class SMSService {
         }
 
         try {
+            LOGGER.debug("SMS message: {}", message);
             List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
             for (SmsDTO smsDTO : smsDTOList) {
                 if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
