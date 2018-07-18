@@ -92,7 +92,8 @@ public class SMSService {
             } catch (IOException e) {
                 handleParsingException(message);
             } catch (Exception e) {
-                handleRecordUpdateException(message);
+                handleRecordUpdateException(message + e.getMessage());
+                LOGGER.error(e.getMessage());
             }
         }
         LOGGER.info("Queue processed");
