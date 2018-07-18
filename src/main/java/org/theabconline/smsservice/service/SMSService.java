@@ -2,6 +2,7 @@ package org.theabconline.smsservice.service;
 
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.base.Strings;
+import jdk.nashorn.internal.scripts.JD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.JDYRecordDTO;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
@@ -34,7 +36,9 @@ public class SMSService {
 
     private final LogService logService;
 
-    private final Queue<SmsDTO> messageQueue;
+    private final JDYRecordService jdyRecordService;
+
+    private final Queue<String> messageQueue;
 
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
@@ -44,12 +48,14 @@ public class SMSService {
                       ParserService parserService,
                       AliyunSMSAdapter aliyunSMSAdapter,
                       EmailService emailService,
-                      LogService logService) {
+                      LogService logService,
+                      JDYRecordService jdyRecordService) {
         this.validationService = validationService;
         this.parserService = parserService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
         this.emailService = emailService;
         this.logService = logService;
+        this.jdyRecordService = jdyRecordService;
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
@@ -60,42 +66,60 @@ public class SMSService {
             throw new RuntimeException("Invalid Message");
         }
 
-        try {
-            LOGGER.debug("SMS message: {}", message);
-            List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
-            for (SmsDTO smsDTO : smsDTOList) {
-                if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
-                    continue;
-                }
-                messageQueue.add(smsDTO);
-                LOGGER.info("Message added to queue, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
-            }
-
-        } catch (IOException e) {
-            handleParsingException(message);
-        }
+        messageQueue.add(message);
+        LOGGER.debug("SMS message: {}", message);
     }
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
     public void processQueue() {
-        SmsDTO smsDTO = messageQueue.poll();
-        if (smsDTO != null) {
+        String message = messageQueue.poll();
+
+        if (message != null) {
             try {
-                aliyunSMSAdapter.sendMessage(smsDTO);
-                LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
-                return;
-            } catch (ClientException e) {
-                LOGGER.error("Message not sent, caused by aliyun client, error message: {}", e.getErrMsg());
-                handleSendingException(smsDTO, e.getErrMsg());
-            } catch (SendSmsException e) {
-                LOGGER.error("Message not sent, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
-                handleSendingException(smsDTO, e.getSendSmsResponse().getMessage());
+                StringBuilder errorMessageBuilder = new StringBuilder();
+                List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
+                for (SmsDTO smsDTO : smsDTOList) {
+                    if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
+                        errorMessageBuilder.append(String.format("No phone number: %s.", smsDTO.getParams()));
+                        LOGGER.error("Processed SMS message without phone number: {}", smsDTO.getParams());
+                        continue;
+                    }
+                    String errorText = sendMessage(smsDTO);
+                    errorMessageBuilder.append(errorText);
+                    LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
+                }
+                JDYRecordDTO jdyRecordDTO = parserService.getJDYRecordDTO(message, errorMessageBuilder.toString());
+                jdyRecordService.updateRecordStatus(jdyRecordDTO);
+            } catch (IOException e) {
+                handleParsingException(message);
             } catch (Exception e) {
-                LOGGER.error("Message not sent, unknown reason");
-                handleSendingException(smsDTO, e.toString());
+                handleRecordUpdateException(message);
             }
         }
         LOGGER.info("Queue processed");
+    }
+
+    private String sendMessage(SmsDTO smsDTO) {
+        String errorText;
+        try {
+            aliyunSMSAdapter.sendMessage(smsDTO);
+            LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
+            return "";
+        } catch (ClientException e) {
+            LOGGER.error("Message not sent, caused by aliyun client, error message: {}", e.getErrMsg());
+            handleSendingException(smsDTO, e.getErrMsg());
+            errorText = e.getErrMsg();
+        } catch (SendSmsException e) {
+            LOGGER.error("Message not sent, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
+            handleSendingException(smsDTO, e.getSendSmsResponse().getMessage());
+            errorText = e.getSendSmsResponse().getMessage();
+        } catch (Exception e) {
+            LOGGER.error("Message not sent, unknown reason");
+            handleSendingException(smsDTO, e.toString());
+            errorText = "unknown";
+        }
+
+        return String.format("Failed to send to: %s. Error: %s", smsDTO.getPhoneNumber(), errorText);
     }
 
     @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
@@ -103,6 +127,13 @@ public class SMSService {
         if (messageQueue.size() > blockingThreshold) {
             sendQueueBlockingEmail();
         }
+    }
+
+    private void handleRecordUpdateException(String message) {
+        String subject = "Error! Failed to update record on JianDaoYun";
+        String text = "Payload: \n" + message;
+        emailService.send(subject, text);
+        LOGGER.info("Sent updating record error email notification");
     }
 
     private void handleParsingException(String message) {

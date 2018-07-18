@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.JDYRecordDTO;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 import org.theabconline.smsservice.mapping.*;
@@ -24,6 +25,8 @@ import java.util.Map;
 public class ParserService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParserService.class);
+
+    private static final String DATA_ID_WIDGET = "_id";
 
     private ObjectMapper mapper;
 
@@ -72,6 +75,20 @@ public class ParserService {
         }
 
         return smsDTOList;
+    }
+
+    public JDYRecordDTO getJDYRecordDTO(String message, String errorMessage) throws IOException {
+        String formId = getFormId(message);
+        Form form = getForm(formId);
+        String dataId = getFieldValue(message, DATA_ID_WIDGET);
+        return new JDYRecordDTO(form.getAppId(),
+                form.getEntryId(),
+                dataId,
+                form.getMessageSentWidget(),
+                errorMessage.length() == 0,
+                form.getErrorMessageWidget(),
+                errorMessage
+                );
     }
 
     private String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
