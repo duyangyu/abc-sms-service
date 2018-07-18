@@ -2,6 +2,7 @@ package org.theabconline.smsservice.service;
 
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,8 +93,9 @@ public class SMSService {
             } catch (IOException e) {
                 handleParsingException(message);
             } catch (Exception e) {
-                handleRecordUpdateException(message + e.toString());
-                LOGGER.error(e.toString());
+                String stacktraceString = Throwables.getStackTraceAsString(e);
+                handleRecordUpdateException(message + stacktraceString);
+                LOGGER.error(stacktraceString);
             }
         }
         LOGGER.info("Queue processed");
@@ -115,8 +117,8 @@ public class SMSService {
             errorText = e.getSendSmsResponse().getMessage();
         } catch (Exception e) {
             LOGGER.error("Message not sent, unknown reason");
-            handleSendingException(smsDTO, e.getMessage());
-            errorText = "unknown";
+            errorText = Throwables.getStackTraceAsString(e);
+            handleSendingException(smsDTO, errorText);
         }
 
         return String.format("Failed to send to: %s. Error: %s", smsDTO.getPhoneNumber(), errorText);
