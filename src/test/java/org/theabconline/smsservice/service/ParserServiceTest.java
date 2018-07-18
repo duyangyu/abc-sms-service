@@ -41,7 +41,7 @@ public class ParserServiceTest {
     @Test
     public void testGetSmsParamsMultipleRecipients() throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        List<SmsDTO> voList = fixture.getSmsParams(PAYLOAD_MULTIPLE);
+        List<SmsDTO> voList = fixture.getSmsDTOList(PAYLOAD_MULTIPLE);
 
         assertEquals(2, voList.size());
         SmsDTO result1 = voList.get(0);
@@ -67,7 +67,7 @@ public class ParserServiceTest {
 
     @Test(expected = NullPointerException.class)
     public void testInvalidMapping() throws IOException {
-        fixture.getSmsParams(PAYLOAD_INVALID);
+        fixture.getSmsDTOList(PAYLOAD_INVALID);
     }
 
 }

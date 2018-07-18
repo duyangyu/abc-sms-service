@@ -56,7 +56,7 @@ public class ParserService {
         }
     }
 
-    public List<SmsDTO> getSmsParams(String message) throws IOException {
+    public List<SmsDTO> getSmsDTOList(String message) throws IOException {
         List<SmsDTO> smsDTOList = Lists.newArrayList();
         String formId = getFormId(message);
         Form form = getForm(formId);

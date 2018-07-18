@@ -16,6 +16,8 @@ public class JDYRecordDTO {
     private String data_id;
     private Map<String, Map<String, String>> data;
 
+    public JDYRecordDTO() {}
+
     public JDYRecordDTO(String appId,
                         String entryId,
                         String data_id,

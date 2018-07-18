@@ -9,6 +9,7 @@ import org.mockito.*;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.theabconline.smsservice.dto.JDYRecordDTO;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
@@ -18,9 +19,10 @@ import java.util.List;
 import java.util.Queue;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
+@RunWith(SpringRunner.class)
 public class SMSServiceTest {
 
     @InjectMocks
@@ -41,6 +43,9 @@ public class SMSServiceTest {
     @Mock
     private LogService logService;
 
+    @Mock
+    private JDYRecordService jdyRecordService;
+
     @Captor
     private ArgumentCaptor<SmsDTO> aliyunAdapterCaptor;
 
@@ -53,41 +58,30 @@ public class SMSServiceTest {
     @Captor
     private ArgumentCaptor<String> emailText;
 
+    @Captor
+    private ArgumentCaptor<JDYRecordDTO> jdyRecordDTOCaptor;
+
+    @Captor
+    private ArgumentCaptor<String> errorMessageCaptor;
+
     @Test
     public void testSendHappyPath() throws IOException {
-        SmsDTO smsDTO = new SmsDTO();
-        smsDTO.setPhoneNumber("phone number");
-        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
-
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        Mockito.when(parserService.getSmsParams(Mockito.anyString())).thenReturn(smsDTOList);
+        when(parserService.getSmsDTOList(anyString())).thenReturn(Lists.newArrayList(new SmsDTO()));
 
-        fixture.send("message", "timestamp", "nonce", "sha1");
+        String message = "message";
+        fixture.send(message, "timestamp", "nonce", "sha1");
 
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        assertEquals(smsDTOList.size(), queue.size());
-        assertEquals(smsDTO, queue.poll());
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        assertEquals(1, queue.size());
+        assertEquals(message, queue.poll());
     }
 
-    @Test
-    public void testSendWithNoPhoneNumber() throws IOException {
-        SmsDTO smsDTO = new SmsDTO();
-        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
-
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
-                .thenReturn(true);
-        Mockito.when(parserService.getSmsParams(Mockito.anyString())).thenReturn(smsDTOList);
-
-        fixture.send("message", "timestamp", "nonce", "sha1");
-
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        assertEquals(0, queue.size());
-    }
 
     @Test(expected = RuntimeException.class)
     public void testSendInvalidMessage() {
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(false);
 
         fixture.send("message", "timestamp", "nonce", "sha1");
@@ -96,35 +90,69 @@ public class SMSServiceTest {
     }
 
     @Test
-    public void testProcessQueueHappyPath() throws ClientException {
+    public void testProcessQueueHappyPath() throws ClientException, IOException {
         SmsDTO smsDTO = new SmsDTO();
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsDTO);
-        Mockito.doNothing().when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        smsDTO.setPhoneNumber("phone number");
+        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add("message");
+        when(parserService.getSmsDTOList(anyString())).thenReturn(smsDTOList);
+        doNothing().when(aliyunSMSAdapter).sendMessage(any(SmsDTO.class));
 
         fixture.processQueue();
 
+        verify(aliyunSMSAdapter, times(1)).sendMessage(aliyunAdapterCaptor.capture());
         assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
     }
 
     @Test
-    public void testProcessQueueClientException() throws ClientException {
+    public void testProcessQueueWithNoPhoneNumber() throws IOException, ClientException {
+        SmsDTO smsDTO = new SmsDTO();
+        List<SmsDTO> smsDTOList = Lists.newArrayList(smsDTO);
+        JDYRecordDTO jdyRecordDTO = new JDYRecordDTO();
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        String message = "message";
+        queue.add(message);
+
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(true);
+        when(parserService.getSmsDTOList(anyString())).thenReturn(smsDTOList);
+        when(parserService.getJDYRecordDTO(eq(message), anyString())).thenReturn(jdyRecordDTO);
+
+        fixture.processQueue();
+
+        verify(parserService, times(1)).getJDYRecordDTO(anyString(), errorMessageCaptor.capture());
+        verify(aliyunSMSAdapter, times(0)).sendMessage(any(SmsDTO.class));
+        verify(jdyRecordService, times(1)).updateRecordStatus(eq(jdyRecordDTO));
+
+        assertTrue(errorMessageCaptor.getValue().length() > 0);
+
+    }
+
+    @Test
+    public void testProcessQueueClientException() throws ClientException, IOException {
         String phoneNumber = "12356";
         String templateCode = "templateCode";
         String params = "params";
         SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsDTO);
         String errCode = "errCode";
         String errMsg = "errMsg";
         ClientException clientException = new ClientException(errCode, errMsg);
-        Mockito.doThrow(clientException).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        JDYRecordDTO jdyRecordDTO = new JDYRecordDTO();
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add("message");
+        when(parserService.getSmsDTOList(anyString())).thenReturn(Lists.newArrayList(smsDTO));
+        when(parserService.getJDYRecordDTO(anyString(), anyString())).thenReturn(jdyRecordDTO);
+        doThrow(clientException).when(aliyunSMSAdapter).sendMessage(any(SmsDTO.class));
+        doNothing().when(jdyRecordService).updateRecordStatus(any(JDYRecordDTO.class));
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
-        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(aliyunSMSAdapter, times(1)).sendMessage(aliyunAdapterCaptor.capture());
+        verify(logService, times(1)).logFailure(logServiceCaptor.capture());
+        verify(emailService, times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(jdyRecordService, times(1)).updateRecordStatus(jdyRecordDTOCaptor.capture());
 
         assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
@@ -136,26 +164,33 @@ public class SMSServiceTest {
         assertTrue(emailText.getValue().contains(templateCode));
         assertTrue(emailText.getValue().contains(params));
         assertTrue(emailText.getValue().contains(errMsg));
+        assertEquals(jdyRecordDTO, jdyRecordDTOCaptor.getValue());
     }
 
     @Test
-    public void testProcessQueueSendSmsException() throws ClientException {
+    public void testProcessQueueSendSmsException() throws ClientException, IOException {
         String phoneNumber = "12356";
         String templateCode = "templateCode";
         String params = "params";
         SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsDTO);
         String errMsg = "failure message";
         SendSmsResponse sendSmsResponse = new SendSmsResponse();
         sendSmsResponse.setMessage(errMsg);
         SendSmsException sendSmsException = new SendSmsException(sendSmsResponse);
-        Mockito.doThrow(sendSmsException).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        JDYRecordDTO jdyRecordDTO = new JDYRecordDTO();
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add("message");
+        when(parserService.getSmsDTOList(anyString())).thenReturn(Lists.newArrayList(smsDTO));
+        when(parserService.getJDYRecordDTO(anyString(), anyString())).thenReturn(jdyRecordDTO);
+        doThrow(sendSmsException).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        doNothing().when(jdyRecordService).updateRecordStatus(any(JDYRecordDTO.class));
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
-        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(aliyunSMSAdapter, times(1)).sendMessage(aliyunAdapterCaptor.capture());
+        verify(logService, times(1)).logFailure(logServiceCaptor.capture());
+        verify(emailService, times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(jdyRecordService, times(1)).updateRecordStatus(jdyRecordDTOCaptor.capture());
 
         assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
@@ -167,49 +202,56 @@ public class SMSServiceTest {
         assertTrue(emailText.getValue().contains(templateCode));
         assertTrue(emailText.getValue().contains(params));
         assertTrue(emailText.getValue().contains(errMsg));
+        assertEquals(jdyRecordDTO, jdyRecordDTOCaptor.getValue());
     }
 
     @Test
-    public void testProcessGeneralException() throws ClientException {
+    public void testProcessGeneralException() throws ClientException, IOException {
         String phoneNumber = "12356";
         String templateCode = "templateCode";
         String params = "params";
         SmsDTO smsDTO = new SmsDTO(phoneNumber, templateCode, params);
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
-        queue.add(smsDTO);
         String errMsg = "exception message";
         Exception exception = new RuntimeException(errMsg);
-        Mockito.doThrow(exception).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        JDYRecordDTO jdyRecordDTO = new JDYRecordDTO();
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        queue.add("message");
+        when(parserService.getSmsDTOList(anyString())).thenReturn(Lists.newArrayList(smsDTO));
+        when(parserService.getJDYRecordDTO(anyString(), anyString())).thenReturn(jdyRecordDTO);
+        doThrow(exception).when(aliyunSMSAdapter).sendMessage(aliyunAdapterCaptor.capture());
+        doNothing().when(jdyRecordService).updateRecordStatus(any(JDYRecordDTO.class));
 
         fixture.processQueue();
 
-        Mockito.verify(logService, Mockito.times(1)).logFailure(logServiceCaptor.capture());
-        Mockito.verify(emailService, Mockito.times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(aliyunSMSAdapter, times(1)).sendMessage(aliyunAdapterCaptor.capture());
+        verify(logService, times(1)).logFailure(logServiceCaptor.capture());
+        verify(emailService, times(1)).send(emailSubject.capture(), emailText.capture());
+        verify(jdyRecordService, times(1)).updateRecordStatus(jdyRecordDTOCaptor.capture());
 
         assertEquals(smsDTO, aliyunAdapterCaptor.getValue());
         assertEquals(0, queue.size());
         assertEquals(phoneNumber, logServiceCaptor.getValue().getPhoneNumber());
         assertEquals(templateCode, logServiceCaptor.getValue().getTemplateCode());
         assertEquals(params, logServiceCaptor.getValue().getParams());
-        assertTrue(logServiceCaptor.getValue().getErrorMessage().contains(errMsg));
+        assertEquals(errMsg, logServiceCaptor.getValue().getErrorMessage());
         assertTrue(emailSubject.getValue().contains(phoneNumber));
         assertTrue(emailText.getValue().contains(templateCode));
         assertTrue(emailText.getValue().contains(params));
         assertTrue(emailText.getValue().contains(errMsg));
+        assertEquals(jdyRecordDTO, jdyRecordDTOCaptor.getValue());
     }
 
     @Test
     public void testCheckBlocking() {
-        Queue<SmsDTO> queue = (Queue<SmsDTO>) ReflectionTestUtils.getField(fixture, "messageQueue");
+        Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
         Integer threshold = 2;
         ReflectionTestUtils.setField(fixture, "blockingThreshold", threshold);
-        SmsDTO smsDTO = new SmsDTO();
-        queue.add(smsDTO);
-        queue.add(smsDTO);
-        queue.add(smsDTO);
+        queue.add("1");
+        queue.add("2");
+        queue.add("3");
 
         fixture.checkBlocking();
 
-        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), Mockito.anyString());
+        verify(emailService, times(1)).send(anyString(), anyString());
     }
 }

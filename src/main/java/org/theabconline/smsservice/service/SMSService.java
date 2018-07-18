@@ -2,7 +2,6 @@ package org.theabconline.smsservice.service;
 
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.base.Strings;
-import jdk.nashorn.internal.scripts.JD;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +76,7 @@ public class SMSService {
         if (message != null) {
             try {
                 StringBuilder errorMessageBuilder = new StringBuilder();
-                List<SmsDTO> smsDTOList = parserService.getSmsParams(message);
+                List<SmsDTO> smsDTOList = parserService.getSmsDTOList(message);
                 for (SmsDTO smsDTO : smsDTOList) {
                     if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
                         errorMessageBuilder.append(String.format("No phone number: %s.", smsDTO.getParams()));
@@ -115,7 +114,7 @@ public class SMSService {
             errorText = e.getSendSmsResponse().getMessage();
         } catch (Exception e) {
             LOGGER.error("Message not sent, unknown reason");
-            handleSendingException(smsDTO, e.toString());
+            handleSendingException(smsDTO, e.getMessage());
             errorText = "unknown";
         }
 
