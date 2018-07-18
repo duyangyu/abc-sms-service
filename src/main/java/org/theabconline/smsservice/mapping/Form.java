@@ -9,6 +9,8 @@ public class Form {
     private String appId;
     private String entryId;
     private String metadataWidget;
+    private String messageSentWidget;
+    private String errorMessageWidget;
 
     /* Custom code */
     public String getFormId() {
@@ -46,5 +48,21 @@ public class Form {
 
     public void setMetadataWidget(String metadataWidget) {
         this.metadataWidget = metadataWidget;
+    }
+
+    public String getMessageSentWidget() {
+        return messageSentWidget;
+    }
+
+    public void setMessageSentWidget(String messageSentWidget) {
+        this.messageSentWidget = messageSentWidget;
+    }
+
+    public String getErrorMessageWidget() {
+        return errorMessageWidget;
+    }
+
+    public void setErrorMessageWidget(String errorMessageWidget) {
+        this.errorMessageWidget = errorMessageWidget;
     }
 }
