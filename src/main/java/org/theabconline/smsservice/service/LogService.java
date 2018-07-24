@@ -7,16 +7,21 @@ import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Service
 public class LogService {
 
     private static final String SMS_LOG_FILE = "/root/workspace/abc-sms-service/FailedMessages.csv";
     private static final String REGISTRATION_LOG_FILE = "/root/workspace/abc-sms-service/FailedRegistration.csv";
+    private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public void logFailure(SmsExceptionDTO smsExceptionDTO) {
         StringBuilder sb = new StringBuilder();
-        sb.append(smsExceptionDTO.getPhoneNumber()).append(";")
+        sb.append(dateFormat.format(new Date())).append(";")
+                .append(smsExceptionDTO.getPhoneNumber()).append(";")
                 .append(smsExceptionDTO.getTemplateCode()).append(";")
                 .append(smsExceptionDTO.getParams()).append(";")
                 .append(smsExceptionDTO.getErrorMessage())
@@ -26,7 +31,8 @@ public class LogService {
 
     public void logFailure(UserRegistrationFailureDTO userRegistrationFailureDTO) {
         StringBuilder sb = new StringBuilder();
-        sb.append(userRegistrationFailureDTO.getUserId()).append(";")
+        sb.append(dateFormat.format(new Date())).append(";")
+                .append(userRegistrationFailureDTO.getUserid()).append(";")
                 .append(userRegistrationFailureDTO.getName()).append(";")
                 .append(userRegistrationFailureDTO.getDepartment()).append(";")
                 .append(userRegistrationFailureDTO.getEmail()).append(";")

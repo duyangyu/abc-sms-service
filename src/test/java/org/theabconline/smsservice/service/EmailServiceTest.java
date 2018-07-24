@@ -32,7 +32,7 @@ public class EmailServiceTest {
         String subject = "subject";
         String text = "text";
         String sender = "sender";
-        String[] recipients = new String[] {"recipients"};
+        String[] recipients = new String[]{"recipients"};
         ReflectionTestUtils.setField(fixture, "sender", sender);
         ReflectionTestUtils.setField(fixture, "recipients", recipients);
 

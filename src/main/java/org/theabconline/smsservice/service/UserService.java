@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.theabconline.smsservice.dto.AccessTokenDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
@@ -19,8 +20,6 @@ import org.theabconline.smsservice.exception.UpdateTokenException;
 import org.theabconline.smsservice.exception.UserCreationException;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -36,39 +35,25 @@ public class UserService {
     public static final String CREATED_MESSAGE = "created";
     public static final String UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE = "Unable to update access token";
     public static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
-
+    private final ParserService parserService;
+    private final EmailService emailService;
+    private final LogService logService;
+    private final ValidationService validationService;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+    private final Queue<UserRegistrationDTO> messageQueue;
     @Value("${aliyun.corpid}")
     private String corpId;
-
-    @Value("${aliyun.corpsecret")
+    @Value("${aliyun.corpsecret}")
     private String corpSecret;
-
     @Value("${wechat.departmentId:2}")
     private Integer departmentId;
-
     @Value("${wechat.accessTokenAPI}")
     private String accessTokenUrl;
-
     @Value("${wechat.creatUserAPI}")
     private String createUserUrl;
-
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
-
-    private final ParserService parserService;
-
-    private final EmailService emailService;
-
-    private final LogService logService;
-
-    private final ValidationService validationService;
-
-    private final RestTemplate restTemplate;
-
-    private final ObjectMapper objectMapper;
-
-    private final Queue<UserRegistrationDTO> messageQueue;
-
     private String accessToken;
 
     private Long expirationTime;
@@ -96,7 +81,7 @@ public class UserService {
         }
         try {
             UserRegistrationDTO userRegistrationDTO = parserService.getUserParams(message);
-            userRegistrationDTO.setUserId(String.valueOf(System.currentTimeMillis())); // this should be ok for now since we only have 1 instance
+            userRegistrationDTO.setUserid(String.valueOf(System.currentTimeMillis())); // this should be ok for now since we only have 1 instance
             userRegistrationDTO.setDepartment(departmentId);
             messageQueue.add(userRegistrationDTO);
         } catch (IOException e) {
@@ -143,19 +128,18 @@ public class UserService {
         LOGGER.debug("Failed to create user due to unable to update access token, user: {}", objectMapper.writeValueAsString(userRegistrationDTO));
     }
 
-    private void updateAccessTokenIfNecessary() {
+    private void updateAccessTokenIfNecessary() throws JsonProcessingException {
         if (accessToken != null && System.currentTimeMillis() < expirationTime) {
             return;
         }
-        Map<String, String> requestParams = new HashMap<>();
-        requestParams.put(CORP_ID_KEY, corpId);
-        requestParams.put(CORP_SECRET_KEY, corpSecret);
-        AccessTokenDTO accessTokenDTO = restTemplate.getForEntity(accessTokenUrl,
-                AccessTokenDTO.class,
-                requestParams).getBody();
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromHttpUrl(accessTokenUrl)
+                .queryParam(CORP_ID_KEY, corpId)
+                .queryParam(CORP_SECRET_KEY, corpSecret);
+        AccessTokenDTO accessTokenDTO = restTemplate.getForEntity(urlBuilder.toUriString(),
+                AccessTokenDTO.class).getBody();
         if (accessTokenDTO == null || accessTokenDTO.getAccess_token() == null ||
                 accessTokenDTO.getErrcode() != 0 || !ACCESS_TOKEN_OK_MESSAGE.equals(accessTokenDTO.getErrmsg())) {
-            LOGGER.error("Failed to update access token for creating new user");
+            LOGGER.error("Failed to update access token for creating new user: {}", objectMapper.writeValueAsString(accessTokenDTO));
             throw new UpdateTokenException("Failed to update access token for creating new user");
         }
         this.accessToken = accessTokenDTO.getAccess_token();
@@ -164,18 +148,18 @@ public class UserService {
         LOGGER.debug("Access token updated, token: {}, expire time: {}", accessToken, expirationTime);
     }
 
-    private void sendCreateUserRequest(UserRegistrationDTO userRegistrationDTO) {
-        Map<String, String> requestParams = new HashMap<>();
-        requestParams.put(ACCESS_TOKEN_KEY, accessToken);
-        ResponseEntity<UserRegistrationResponseDTO> responseEntity = restTemplate.postForEntity(createUserUrl,
-                        userRegistrationDTO,
-                        UserRegistrationResponseDTO.class,
-                        requestParams);
+    private void sendCreateUserRequest(UserRegistrationDTO userRegistrationDTO) throws JsonProcessingException {
+        UriComponentsBuilder urlBuilder = UriComponentsBuilder.fromHttpUrl(createUserUrl)
+                .queryParam(ACCESS_TOKEN_KEY, accessToken);
+        ResponseEntity<UserRegistrationResponseDTO> responseEntity = restTemplate.postForEntity(urlBuilder.toUriString(),
+                userRegistrationDTO,
+                UserRegistrationResponseDTO.class);
         if (responseEntity.getStatusCodeValue() != 200 ||
                 responseEntity.getBody().getErrcode() != 0 ||
                 !CREATED_MESSAGE.equals(responseEntity.getBody().getErrmsg())) {
             throw new UserCreationException(responseEntity.getBody().getErrmsg());
         }
+        LOGGER.info("User created, {}", objectMapper.writeValueAsString(userRegistrationDTO));
     }
 
     private void handleParsingException(String message) {
@@ -189,7 +173,7 @@ public class UserService {
         String subject = "Warning! User creation message queue size is larger than threshold, please check for potential issue";
         String text = "";
 
-        emailService.send(subject,text);
+        emailService.send(subject, text);
         LOGGER.info("Sent user creation queue blocking email notification");
     }
 }

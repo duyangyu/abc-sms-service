@@ -1,31 +1,31 @@
 package org.theabconline.smsservice.mapping;
 
-import com.google.common.base.Strings;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Component
 public class Form {
 
+    private String name;
     private String appId;
     private String entryId;
-    private String name;
-    private List<String> templateCodes;
-    private String phoneNumberPath;
-    private List<String> phoneNumberFieldNames;
+    private String metadataWidget;
+    private String messageSentWidget;
+    private String errorMessageWidget;
 
     /* Custom code */
     public String getFormId() {
         return this.appId + this.entryId;
     }
 
-    public String getPhoneNumberPath() {
-        String actualPath = Strings.isNullOrEmpty(phoneNumberPath) ? FormMappings.DEFAULT_PATH : phoneNumberPath;
-        return FormMappings.ROOT_PATH.equals(actualPath) ? "" : actualPath;
+    /* Generated code */
+    public String getName() {
+        return name;
     }
 
-    /* Generated code */
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getAppId() {
         return appId;
     }
@@ -42,32 +42,27 @@ public class Form {
         this.entryId = entryId;
     }
 
-    public String getName() {
-        return name;
+    public String getMetadataWidget() {
+        return metadataWidget;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setMetadataWidget(String metadataWidget) {
+        this.metadataWidget = metadataWidget;
     }
 
-    public List<String> getTemplateCodes() {
-        return templateCodes;
+    public String getMessageSentWidget() {
+        return messageSentWidget;
     }
 
-    public void setTemplateCodes(List<String> templateCodes) {
-        this.templateCodes = templateCodes;
+    public void setMessageSentWidget(String messageSentWidget) {
+        this.messageSentWidget = messageSentWidget;
     }
 
-    public void setPhoneNumberPath(String phoneNumberPath) {
-        this.phoneNumberPath = phoneNumberPath;
+    public String getErrorMessageWidget() {
+        return errorMessageWidget;
     }
 
-    public List<String> getPhoneNumberFieldNames() {
-        return phoneNumberFieldNames;
+    public void setErrorMessageWidget(String errorMessageWidget) {
+        this.errorMessageWidget = errorMessageWidget;
     }
-
-    public void setPhoneNumberFieldNames(List<String> phoneNumberFieldNames) {
-        this.phoneNumberFieldNames = phoneNumberFieldNames;
-    }
-
 }
