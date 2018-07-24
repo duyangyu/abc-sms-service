@@ -45,7 +45,7 @@ public class UserService {
     private final Queue<UserRegistrationDTO> messageQueue;
     @Value("${aliyun.corpid}")
     private String corpId;
-    @Value("${aliyun.corpsecret")
+    @Value("${aliyun.corpsecret}")
     private String corpSecret;
     @Value("${wechat.departmentId:2}")
     private Integer departmentId;
@@ -141,7 +141,7 @@ public class UserService {
                 requestParams).getBody();
         if (accessTokenDTO == null || accessTokenDTO.getAccess_token() == null ||
                 accessTokenDTO.getErrcode() != 0 || !ACCESS_TOKEN_OK_MESSAGE.equals(accessTokenDTO.getErrmsg())) {
-            LOGGER.error("Failed to update access token for creating new user");
+            LOGGER.error("Failed to update access token for creating new user: {}", accessTokenDTO);
             throw new UpdateTokenException("Failed to update access token for creating new user");
         }
         this.accessToken = accessTokenDTO.getAccess_token();
