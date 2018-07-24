@@ -32,7 +32,7 @@ public class LogService {
     public void logFailure(UserRegistrationFailureDTO userRegistrationFailureDTO) {
         StringBuilder sb = new StringBuilder();
         sb.append(dateFormat.format(new Date())).append(";")
-                .append(userRegistrationFailureDTO.getUserId()).append(";")
+                .append(userRegistrationFailureDTO.getUserid()).append(";")
                 .append(userRegistrationFailureDTO.getName()).append(";")
                 .append(userRegistrationFailureDTO.getDepartment()).append(";")
                 .append(userRegistrationFailureDTO.getEmail()).append(";")

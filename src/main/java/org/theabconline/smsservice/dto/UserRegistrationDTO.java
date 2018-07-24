@@ -2,7 +2,7 @@ package org.theabconline.smsservice.dto;
 
 public class UserRegistrationDTO {
 
-    private String userId;
+    private String userid;
     private String name;
     private Integer department;
     private String email;
@@ -11,20 +11,20 @@ public class UserRegistrationDTO {
     public UserRegistrationDTO() {
     }
 
-    public UserRegistrationDTO(String userId, String name, Integer department, String email, String mobile) {
-        this.userId = userId;
+    public UserRegistrationDTO(String userid, String name, Integer department, String email, String mobile) {
+        this.userid = userid;
         this.name = name;
         this.department = department;
         this.email = email;
         this.mobile = mobile;
     }
 
-    public String getUserId() {
-        return userId;
+    public String getUserid() {
+        return userid;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUserid(String userid) {
+        this.userid = userid;
     }
 
     public String getName() {

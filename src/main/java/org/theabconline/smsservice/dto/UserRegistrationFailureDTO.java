@@ -5,7 +5,7 @@ public class UserRegistrationFailureDTO extends UserRegistrationDTO {
     private String errorMessage;
 
     public UserRegistrationFailureDTO(UserRegistrationDTO userRegistrationDTO, String errorMessage) {
-        super(userRegistrationDTO.getUserId(),
+        super(userRegistrationDTO.getUserid(),
                 userRegistrationDTO.getName(),
                 userRegistrationDTO.getDepartment(),
                 userRegistrationDTO.getEmail(),
