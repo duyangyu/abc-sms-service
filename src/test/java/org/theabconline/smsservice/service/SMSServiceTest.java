@@ -233,7 +233,7 @@ public class SMSServiceTest {
         assertEquals(phoneNumber, logServiceCaptor.getValue().getPhoneNumber());
         assertEquals(templateCode, logServiceCaptor.getValue().getTemplateCode());
         assertEquals(params, logServiceCaptor.getValue().getParams());
-        assertEquals(errMsg, logServiceCaptor.getValue().getErrorMessage());
+        assertTrue(logServiceCaptor.getValue().getErrorMessage().contains(errMsg));
         assertTrue(emailSubject.getValue().contains(phoneNumber));
         assertTrue(emailText.getValue().contains(templateCode));
         assertTrue(emailText.getValue().contains(params));
