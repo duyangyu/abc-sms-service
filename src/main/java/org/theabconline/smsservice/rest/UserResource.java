@@ -34,6 +34,6 @@ public class UserResource {
     public ResponseEntity createUser(@RequestBody String message) {
         LOGGER.info(message);
 
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok().body("{\"code\": 0}");
     }
 }
