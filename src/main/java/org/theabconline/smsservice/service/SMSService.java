@@ -98,7 +98,7 @@ public class SMSService {
                 LOGGER.error(stacktraceString);
             }
         }
-        LOGGER.info("Queue processed");
+        LOGGER.debug("Queue processed");
     }
 
     private String sendMessage(SmsDTO smsDTO) {
