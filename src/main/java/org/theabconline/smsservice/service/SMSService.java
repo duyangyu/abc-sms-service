@@ -1,8 +1,10 @@
 package org.theabconline.smsservice.service;
 
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.JDYRecordDTO;
+import org.theabconline.smsservice.dto.MessageStatus;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
@@ -38,6 +41,8 @@ public class SMSService {
 
     private final JDYRecordService jdyRecordService;
 
+    private final SMSTrackingService smsTrackingService;
+
     private final Queue<String> messageQueue;
 
     @Value("${checkBlocking.threshold:10}")
@@ -49,13 +54,15 @@ public class SMSService {
                       AliyunSMSAdapter aliyunSMSAdapter,
                       EmailService emailService,
                       LogService logService,
-                      JDYRecordService jdyRecordService) {
+                      JDYRecordService jdyRecordService,
+                      SMSTrackingService smsTrackingService) {
         this.validationService = validationService;
         this.parserService = parserService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
         this.emailService = emailService;
         this.logService = logService;
         this.jdyRecordService = jdyRecordService;
+        this.smsTrackingService = smsTrackingService;
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
@@ -74,54 +81,59 @@ public class SMSService {
     public void processQueue() {
         String message = messageQueue.poll();
 
-        if (message != null) {
+        if (message == null) {
+            return;
+        }
+
+        List<SmsDTO> smsDTOList = Lists.newArrayList();
+        String appId = null;
+        String entryId = null;
+        String dataId = null;
+        try {
+            smsDTOList = parserService.getSmsDTOList(message);
+            appId = parserService.getAppId(message);
+            entryId = parserService.getEntryId(message);
+            dataId = parserService.getDataId(message);
+        } catch (Exception e) {
+            String stacktraceString = Throwables.getStackTraceAsString(e);
+            handleParsingException(message + stacktraceString);
+            LOGGER.error(stacktraceString);
+        }
+
+        for (SmsDTO smsDTO : smsDTOList) {
+            if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
+                LOGGER.error("Processed SMS message without phone number: {}", smsDTO.getParams());
+                continue;
+            }
+            String errorText = null;
+            SendSmsResponse sendSmsResponse = null;
             try {
-                StringBuilder errorMessageBuilder = new StringBuilder();
-                List<SmsDTO> smsDTOList = parserService.getSmsDTOList(message);
-                for (SmsDTO smsDTO : smsDTOList) {
-                    if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
-                        errorMessageBuilder.append(String.format("No phone number: %s.", smsDTO.getParams()));
-                        LOGGER.error("Processed SMS message without phone number: {}", smsDTO.getParams());
-                        continue;
-                    }
-                    String errorText = sendMessage(smsDTO);
-                    errorMessageBuilder.append(errorText);
-                    LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
-                }
-                JDYRecordDTO jdyRecordDTO = parserService.getJDYRecordDTO(message, errorMessageBuilder.toString());
-                jdyRecordService.updateRecordStatus(jdyRecordDTO);
-            } catch (IOException e) {
-                handleParsingException(message);
+                sendSmsResponse = aliyunSMSAdapter.sendMessage(smsDTO);
+                LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
+            } catch (ClientException e) {
+                errorText = e.getErrMsg();
+                LOGGER.error("Message not sent: {}", errorText);
+                handleSendingException(smsDTO, errorText);
+            } catch (SendSmsException e) {
+                errorText = e.getSendSmsResponse().getMessage();
+                LOGGER.error("Message not sent: {}", errorText);
+                handleSendingException(smsDTO, errorText);
             } catch (Exception e) {
-                String stacktraceString = Throwables.getStackTraceAsString(e);
-                handleRecordUpdateException(message + stacktraceString);
-                LOGGER.error(stacktraceString);
+                errorText = Throwables.getStackTraceAsString(e);
+                LOGGER.error("Message not sent: {}", errorText);
+                handleSendingException(smsDTO, errorText);
+            }
+
+            if (sendSmsResponse == null) {
+                return;
+            }
+
+            if (sendSmsResponse.getCode().equals("OK")) {
+                smsTrackingService.addSuccess(appId, entryId, dataId, smsDTO.getTemplateCode(), sendSmsResponse.getBizId(), smsDTO.getPhoneNumber().split(","));
+            } else {
+                smsTrackingService.addFailure(appId, entryId, dataId, smsDTO.getTemplateCode(), sendSmsResponse.getBizId(), smsDTO.getPhoneNumber().split(","), errorText);
             }
         }
-        LOGGER.info("Queue processed");
-    }
-
-    private String sendMessage(SmsDTO smsDTO) {
-        String errorText;
-        try {
-            aliyunSMSAdapter.sendMessage(smsDTO);
-            LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
-            return "";
-        } catch (ClientException e) {
-            LOGGER.error("Message not sent, caused by aliyun client, error message: {}", e.getErrMsg());
-            handleSendingException(smsDTO, e.getErrMsg());
-            errorText = e.getErrMsg();
-        } catch (SendSmsException e) {
-            LOGGER.error("Message not sent, caused by invalid payload, error message: {}", e.getSendSmsResponse().getMessage());
-            handleSendingException(smsDTO, e.getSendSmsResponse().getMessage());
-            errorText = e.getSendSmsResponse().getMessage();
-        } catch (Exception e) {
-            LOGGER.error("Message not sent, unknown reason");
-            errorText = Throwables.getStackTraceAsString(e);
-            handleSendingException(smsDTO, errorText);
-        }
-
-        return String.format("Failed to send to: %s. Error: %s", smsDTO.getPhoneNumber(), errorText);
     }
 
     @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
@@ -129,13 +141,6 @@ public class SMSService {
         if (messageQueue.size() > blockingThreshold) {
             sendQueueBlockingEmail();
         }
-    }
-
-    private void handleRecordUpdateException(String message) {
-        String subject = "Error! Failed to update record on JianDaoYun";
-        String text = "Payload: \n" + message;
-        emailService.send(subject, text);
-        LOGGER.info("Sent updating record error email notification");
     }
 
     private void handleParsingException(String message) {

@@ -120,6 +120,18 @@ public class ParserService {
         return result;
     }
 
+    public String getAppId(String message) throws IOException {
+        return getFieldValue(message, appIdFieldName);
+    }
+
+    public String getEntryId(String message) throws IOException {
+        return getFieldValue(message, entryIdFieldName);
+    }
+
+    public String getDataId(String message) throws IOException {
+        return getFieldValue(message, DATA_ID_WIDGET);
+    }
+
     private String getFormId(String message) throws IOException {
         String entryId = getFieldValue(message, formIdPath, entryIdFieldName);
         String appId = getFieldValue(message, formIdPath, appIdFieldName);

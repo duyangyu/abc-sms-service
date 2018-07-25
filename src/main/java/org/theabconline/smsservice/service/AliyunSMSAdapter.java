@@ -30,7 +30,7 @@ public class AliyunSMSAdapter {
     @Value("${aliyun.secret}")
     private String secret;
 
-    public void sendMessage(SmsDTO smsDTO) throws ClientException {
+    public SendSmsResponse sendMessage(SmsDTO smsDTO) throws ClientException {
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKey, secret);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", PRODUCT, DOMAIN);
         IAcsClient acsClient = new DefaultAcsClient(profile);
@@ -48,5 +48,7 @@ public class AliyunSMSAdapter {
             LOGGER.debug("response code: {}", sendSmsResponse.getCode());
             throw new SendSmsException(sendSmsResponse);
         }
+
+        return sendSmsResponse;
     }
 }
