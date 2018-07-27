@@ -60,7 +60,7 @@ public class SMSTrackingService {
     private Map<String, Boolean> getPhoneNumberList(String[] phoneNumbers) {
         Map<String, Boolean> result = Maps.newConcurrentMap();
         List<String> rawPhoneNumbers = Lists.newArrayList(phoneNumbers);
-        for(String rawPhoneNumber : rawPhoneNumbers) {
+        for (String rawPhoneNumber : rawPhoneNumbers) {
             result.put(rawPhoneNumber.trim(), Boolean.FALSE);
         }
 

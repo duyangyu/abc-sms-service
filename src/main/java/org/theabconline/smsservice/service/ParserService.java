@@ -88,7 +88,7 @@ public class ParserService {
                 errorMessage.length() == 0,
                 form.getErrorMessageWidget(),
                 errorMessage
-                );
+        );
     }
 
     private String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
