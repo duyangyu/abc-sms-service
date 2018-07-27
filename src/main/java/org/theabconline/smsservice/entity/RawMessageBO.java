@@ -15,7 +15,7 @@ public class RawMessageBO {
     @Column(name = "message")
     private String message;
 
-    @Column(name = "is_processed")
+    @Column(name = "is_processed", columnDefinition = "TINYINT(1)")
     private Boolean isProcessed;
 
     @Column(name = "created_on", columnDefinition = "DATETIME")

@@ -21,7 +21,7 @@ public class SMSResource {
                                       @RequestParam String nonce,
                                       @RequestHeader(value = "X-JDY-Signature") String sha1,
                                       @RequestBody String message) {
-        smsService.send(message, timestamp, nonce, sha1);
+        smsService.saveMessage(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();
     }

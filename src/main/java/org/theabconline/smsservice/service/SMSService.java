@@ -12,10 +12,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
+import org.theabconline.smsservice.entity.RawMessageBO;
 import org.theabconline.smsservice.exception.SendSmsException;
+import org.theabconline.smsservice.repository.RawMessageRepository;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -25,6 +29,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SMSService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SMSService.class);
+
+    private final RawMessageRepository rawMessageRepository;
 
     private final ValidationService validationService;
 
@@ -46,13 +52,15 @@ public class SMSService {
     private Integer blockingThreshold;
 
     @Autowired
-    public SMSService(ValidationService validationService,
+    public SMSService(RawMessageRepository rawMessageRepository,
+                      ValidationService validationService,
                       ParserService parserService,
                       AliyunSMSAdapter aliyunSMSAdapter,
                       EmailService emailService,
                       LogService logService,
                       JDYRecordService jdyRecordService,
                       SMSTrackingService smsTrackingService) {
+        this.rawMessageRepository = rawMessageRepository;
         this.validationService = validationService;
         this.parserService = parserService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
@@ -63,15 +71,42 @@ public class SMSService {
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
-    public void send(String message, String timestamp, String nonce, String sha1) {
+    @Transactional
+    public void saveMessage(String message, String timestamp, String nonce, String sha1) {
+        validateMessage(message, timestamp, nonce, sha1);
+        RawMessageBO rawMessageBO = createRawMessageBO(message);
+        rawMessageRepository.save(rawMessageBO);
+    }
+
+    @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
+    @Transactional
+    public void processRawMessages() {
+        List<RawMessageBO> unprocessedMessages = rawMessageRepository.getRawMessageBOSByIsProcessedFalse();
+        for (RawMessageBO unprocessedMessage : unprocessedMessages) {
+            processRawMessage(unprocessedMessage);
+            unprocessedMessage.setProcessed(true);
+        }
+        rawMessageRepository.save(unprocessedMessages);
+    }
+
+    private void processRawMessage(RawMessageBO rawMessage) {
+
+    }
+
+    private void validateMessage(String message, String timestamp, String nonce, String sha1) {
         if (!validationService.isValid(message, timestamp, nonce, sha1)) {
-            LOGGER.error("Validation failed, timestamp: {}, nonce: {}, sha1: {}", timestamp, nonce, sha1);
-            LOGGER.error("message: {}", message);
+            LOGGER.error("Validation failed, timestamp: {}\n nonce: {}\n sha1: {}\n payload: {}", timestamp, nonce, sha1, message);
             throw new RuntimeException("Invalid Message");
         }
+    }
 
-        messageQueue.add(message);
-        LOGGER.debug("SMS message: {}", message);
+    private RawMessageBO createRawMessageBO(String message) {
+        RawMessageBO bo = new RawMessageBO();
+        bo.setMessage(message);
+        bo.setProcessed(false);
+        bo.setCreatedOn(new Date());
+
+        return bo;
     }
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
@@ -160,7 +195,7 @@ public class SMSService {
     }
 
     private void sendNotificationEmail(SmsDTO smsDTO, String errorMessage) {
-        String subject = "Error! Failed to send sms to " + smsDTO.getPhoneNumber();
+        String subject = "Error! Failed to saveMessage sms to " + smsDTO.getPhoneNumber();
         String text = "Recipient(s): " + smsDTO.getPhoneNumber() + "\n" +
                 "Template code: " + smsDTO.getTemplateCode() + "\n" +
                 "Payload: " + smsDTO.getParams() + "\n" +

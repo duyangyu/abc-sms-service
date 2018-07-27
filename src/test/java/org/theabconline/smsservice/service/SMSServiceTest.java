@@ -72,7 +72,7 @@ public class SMSServiceTest {
         when(parserService.getSmsDTOList(anyString())).thenReturn(Lists.newArrayList(new SmsDTO()));
 
         String message = "message";
-        fixture.send(message, "timestamp", "nonce", "sha1");
+        fixture.saveMessage(message, "timestamp", "nonce", "sha1");
 
         Queue<String> queue = (Queue<String>) ReflectionTestUtils.getField(fixture, "messageQueue");
         assertEquals(1, queue.size());
@@ -85,7 +85,7 @@ public class SMSServiceTest {
         when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(false);
 
-        fixture.send("message", "timestamp", "nonce", "sha1");
+        fixture.saveMessage("message", "timestamp", "nonce", "sha1");
 
         fail("Exception expected");
     }

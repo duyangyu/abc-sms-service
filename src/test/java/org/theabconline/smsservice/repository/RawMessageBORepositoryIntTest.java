@@ -8,8 +8,10 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.theabconline.smsservice.entity.RawMessageBO;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -20,14 +22,13 @@ public class RawMessageBORepositoryIntTest {
     private RawMessageRepository fixture;
 
     @Test
-    public void testFindOne() {
-        Long id = 1L;
-        RawMessageBO bo = fixture.findOne(id);
+    public void testGetRawMessageBOSByIsProcessedFalse() {
+        List<RawMessageBO> boList = fixture.getRawMessageBOSByIsProcessedFalse();
 
-        assertNotNull(bo);
-        assertNotNull(bo.getCreatedOn());
-        assertEquals(bo.getCreatedOn(), bo.getProcessedOn());
-        assertEquals(id, bo.getId());
+        assertEquals(1, boList.size());
+        RawMessageBO bo = boList.get(0);
+        assertEquals(Long.valueOf(1), bo.getId());
+        assertFalse(bo.getProcessed());
     }
 
 }

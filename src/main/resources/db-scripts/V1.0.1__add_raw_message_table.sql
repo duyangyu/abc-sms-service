@@ -8,9 +8,6 @@ create table RAW_MESSAGE
   processed_on datetime                           null
 );
 
-create index RAW_MESSAGE_created_on_index
-  on RAW_MESSAGE (created_on);
-
 create index RAW_MESSAGE_processed_index
   on RAW_MESSAGE (is_processed);
 
