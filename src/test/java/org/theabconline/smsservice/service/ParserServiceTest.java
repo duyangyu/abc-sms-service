@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
@@ -16,8 +18,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@SpringBootTest
-@RunWith(SpringRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 public class ParserServiceTest {
 
     private static final String PAYLOAD_MULTIPLE = "{ \"data\": { \"appId\": \"appId1\", \"entryId\": \"entryId1\", \"metadataField\": \"{ \\\"smsTemplates\\\": [ { \\\"smsTemplateCode\\\": \\\"smsTemplateCode1\\\", \\\"phoneNumbersWidget\\\": \\\"phoneNumberField1\\\", \\\"fieldMappings\\\": [ { \\\"widget\\\": \\\"widget1\\\", \\\"smsField\\\": \\\"smsField1\\\" }, { \\\"widget\\\": \\\"widget2\\\", \\\"smsField\\\": \\\"smsField2\\\" } ] }, { \\\"smsTemplateCode\\\": \\\"smsTemplateCode2\\\", \\\"phoneNumbersWidget\\\": \\\"phoneNumberField2\\\", \\\"fieldMappings\\\": [ { \\\"widget\\\": \\\"widget3\\\", \\\"smsField\\\": \\\"smsField3\\\" } ] } ] }\", \"phoneNumberField1\": [ \"123\", \"456\" ], \"widget1\": \"widget1\", \"widget2\": \"widget2\", \"phoneNumberField2\": \"789\", \"widget3\": \"widget3\" } }";
@@ -35,7 +36,7 @@ public class ParserServiceTest {
     private static final String USER_REGISTRATION_EMAIL = "email";
     private static final String USER_REGISTRATION_MOBILE = "mobile";
 
-    @Autowired
+    @InjectMocks
     ParserService fixture;
 
     @Test

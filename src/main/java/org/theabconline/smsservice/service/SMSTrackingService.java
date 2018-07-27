@@ -1,6 +1,5 @@
 package org.theabconline.smsservice.service;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.springframework.stereotype.Service;

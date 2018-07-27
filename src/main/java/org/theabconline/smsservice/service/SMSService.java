@@ -12,13 +12,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.dto.JDYRecordDTO;
-import org.theabconline.smsservice.dto.MessageStatus;
 import org.theabconline.smsservice.dto.SmsDTO;
 import org.theabconline.smsservice.dto.SmsExceptionDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;

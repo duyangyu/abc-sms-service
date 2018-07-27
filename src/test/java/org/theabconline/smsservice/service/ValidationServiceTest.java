@@ -3,16 +3,14 @@ package org.theabconline.smsservice.service;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.InjectMocks;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest
+@RunWith(SpringJUnit4ClassRunner.class)
 public class ValidationServiceTest {
 
     private static final String SECRET = "supersecretkey";
@@ -22,7 +20,7 @@ public class ValidationServiceTest {
     private static final String VALID_SHA1 = "f88da935abb8fe6b94b7270499a7e535dd7a37cc";
     private static final String INVALID_SHA1 = "invalidstuff";
 
-    @Autowired
+    @InjectMocks
     ValidationService fixture;
 
     @Before
