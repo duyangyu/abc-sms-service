@@ -26,6 +26,12 @@ import java.io.IOException;
 import java.util.Queue;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 public class UserServiceTest {
@@ -80,13 +86,13 @@ public class UserServiceTest {
         userRegistrationDTO.setName(name);
         userRegistrationDTO.setEmail(email);
         userRegistrationDTO.setMobile(mobile);
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        Mockito.when(parserService.getUserParams(Mockito.anyString())).thenReturn(userRegistrationDTO);
+        when(parserService.getUserParams(anyString())).thenReturn(userRegistrationDTO);
 
         fixture.createUser("message", "timestamp", "nonce", "sha1");
 
-        Mockito.verify(validationService, Mockito.times(1)).isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        verify(validationService, times(1)).isValid(anyString(), anyString(), anyString(), anyString());
         assertEquals(1, messageQueue.size());
         UserRegistrationDTO dto = messageQueue.poll();
         assertEquals(userRegistrationDTO, dto);
@@ -96,7 +102,7 @@ public class UserServiceTest {
 
     @Test(expected = RuntimeException.class)
     public void testCreateUserInvalidInput() {
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(false);
 
         fixture.createUser("message", "timestamp", "nonce", "sha1");
@@ -108,14 +114,14 @@ public class UserServiceTest {
     @Test
     public void testCreateUserParsingException() throws IOException {
         String message = "message";
-        Mockito.when(validationService.isValid(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+        when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        Mockito.when(parserService.getUserParams(Mockito.anyString())).thenThrow(new IOException());
+        when(parserService.getUserParams(anyString())).thenThrow(new IOException());
 
         fixture.createUser(message, "timestamp", "nonce", "sha1");
 
         ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), messageCaptor.capture());
+        verify(emailService, times(1)).send(anyString(), messageCaptor.capture());
         assertTrue(messageCaptor.getValue().contains(message));
     }
 
@@ -131,12 +137,12 @@ public class UserServiceTest {
         responseDTO.setErrmsg(UserService.CREATED_MESSAGE);
         String url = UriComponentsBuilder.fromHttpUrl(CREATE_USER_URL).queryParam(UserService.ACCESS_TOKEN_KEY, accessToken).toUriString();
         ResponseEntity<UserRegistrationResponseDTO> response = new ResponseEntity<>(responseDTO, HttpStatus.OK);
-        Mockito.when(restTemplate.postForEntity(Mockito.eq(url), Mockito.eq(userRegistrationDTO), Mockito.any(Class.class)))
+        when(restTemplate.postForEntity(eq(url), eq(userRegistrationDTO), any(Class.class)))
                 .thenReturn(response);
 
         fixture.processQueue();
 
-        Mockito.verify(restTemplate, Mockito.times(1)).postForEntity(Mockito.eq(url), Mockito.eq(userRegistrationDTO), Mockito.eq(UserRegistrationResponseDTO.class));
+        verify(restTemplate, times(1)).postForEntity(eq(url), eq(userRegistrationDTO), eq(UserRegistrationResponseDTO.class));
         assertEquals(0, messageQueue.size());
     }
 
@@ -159,13 +165,13 @@ public class UserServiceTest {
                 .queryParam(UserService.CORP_ID_KEY, CORP_ID)
                 .queryParam(UserService.CORP_SECRET_KEY, CORP_SECRET)
                 .toUriString();
-        Mockito.when(restTemplate.getForEntity(Mockito.eq(url), Mockito.eq(AccessTokenDTO.class)))
+        when(restTemplate.getForEntity(eq(url), eq(AccessTokenDTO.class)))
                 .thenReturn(response);
         UserRegistrationResponseDTO responseDTO = new UserRegistrationResponseDTO();
         responseDTO.setErrcode(0);
         responseDTO.setErrmsg(UserService.CREATED_MESSAGE);
         ResponseEntity<UserRegistrationResponseDTO> registrationResponse = new ResponseEntity<>(responseDTO, HttpStatus.OK);
-        Mockito.when(restTemplate.postForEntity(Mockito.anyString(), Mockito.any(UserRegistrationDTO.class), Mockito.any(Class.class)))
+        when(restTemplate.postForEntity(anyString(), any(UserRegistrationDTO.class), any(Class.class)))
                 .thenReturn(registrationResponse);
 
         fixture.processQueue();
@@ -194,17 +200,17 @@ public class UserServiceTest {
                 .queryParam(UserService.CORP_ID_KEY, CORP_ID)
                 .queryParam(UserService.CORP_SECRET_KEY, CORP_SECRET)
                 .toUriString();
-        Mockito.when(restTemplate.getForEntity(Mockito.eq(url), Mockito.eq(AccessTokenDTO.class)))
+        when(restTemplate.getForEntity(eq(url), eq(AccessTokenDTO.class)))
                 .thenReturn(response);
         String emailContent = "update token failure email content";
-        Mockito.when(objectMapper.writeValueAsString(Mockito.eq(userRegistrationDTO))).thenReturn(emailContent);
+        when(objectMapper.writeValueAsString(eq(userRegistrationDTO))).thenReturn(emailContent);
 
         fixture.processQueue();
 
         ArgumentCaptor<String> emailContentCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), emailContentCaptor.capture());
+        verify(emailService, times(1)).send(anyString(), emailContentCaptor.capture());
         ArgumentCaptor<UserRegistrationFailureDTO> failureDTOArgumentCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
-        Mockito.verify(logService, Mockito.times(1)).logFailure(failureDTOArgumentCaptor.capture());
+        verify(logService, times(1)).logFailure(failureDTOArgumentCaptor.capture());
         assertEquals(0, messageQueue.size());
         assertEquals(emailContent, emailContentCaptor.getValue());
         assertEquals(UserService.UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE, failureDTOArgumentCaptor.getValue().getErrorMessage());
@@ -223,7 +229,7 @@ public class UserServiceTest {
         responseDTO.setErrmsg(userCreationErrorMessage);
         ResponseEntity<UserRegistrationResponseDTO> response = new ResponseEntity<>(responseDTO, HttpStatus.OK);
         String url = UriComponentsBuilder.fromHttpUrl(CREATE_USER_URL).queryParam(UserService.ACCESS_TOKEN_KEY, accessToken).toUriString();
-        Mockito.when(restTemplate.postForEntity(Mockito.eq(url), Mockito.eq(userRegistrationDTO), Mockito.eq(UserRegistrationResponseDTO.class)))
+        when(restTemplate.postForEntity(eq(url), eq(userRegistrationDTO), eq(UserRegistrationResponseDTO.class)))
                 .thenReturn(response);
         ArgumentCaptor<String> emailContentCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<UserRegistrationFailureDTO> failureLogCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
@@ -231,8 +237,8 @@ public class UserServiceTest {
         fixture.processQueue();
 
         assertEquals(0, messageQueue.size());
-        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), emailContentCaptor.capture());
-        Mockito.verify(logService, Mockito.times(1)).logFailure(failureLogCaptor.capture());
+        verify(emailService, times(1)).send(anyString(), emailContentCaptor.capture());
+        verify(logService, times(1)).logFailure(failureLogCaptor.capture());
         assertTrue(emailContentCaptor.getValue().contains(userCreationErrorMessage));
         assertEquals(userCreationErrorMessage, failureLogCaptor.getValue().getErrorMessage());
     }
@@ -248,6 +254,6 @@ public class UserServiceTest {
 
         fixture.checkBlocking();
 
-        Mockito.verify(emailService, Mockito.times(1)).send(Mockito.anyString(), Mockito.anyString());
+        verify(emailService, times(1)).send(anyString(), anyString());
     }
 }

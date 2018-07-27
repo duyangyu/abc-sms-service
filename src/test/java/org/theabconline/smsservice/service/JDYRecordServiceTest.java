@@ -18,6 +18,9 @@ import org.springframework.web.client.RestTemplate;
 import org.theabconline.smsservice.dto.JDYRecordDTO;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 public class JDYRecordServiceTest {
@@ -47,13 +50,10 @@ public class JDYRecordServiceTest {
 
         fixture.updateRecordStatus(jdyRecordDTO);
 
-        ArgumentCaptor<String> requestUrlCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<HttpMethod> httpMethodCaptor = ArgumentCaptor.forClass(HttpMethod.class);
+        String requestUrlString = "https://www.jiandaoyun.com/api/v1/app/appId/entry/entryId/data_update";
         ArgumentCaptor<HttpEntity> httpEntityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
 
-        Mockito.verify(restTemplate, Mockito.times(1)).exchange(requestUrlCaptor.capture(), httpMethodCaptor.capture(), httpEntityCaptor.capture(), Mockito.eq(String.class));
-        assertEquals("https://www.jiandaoyun.com/api/v1/app/appId/entry/entryId/data_update", requestUrlCaptor.getValue());
-        assertEquals(HttpMethod.POST, httpMethodCaptor.getValue());
+        verify(restTemplate, times(1)).exchange(eq(requestUrlString), eq(HttpMethod.POST), httpEntityCaptor.capture(), eq(String.class));
         HttpEntity<?> httpEntity = httpEntityCaptor.getValue();
         assertEquals(MediaType.APPLICATION_JSON, httpEntity.getHeaders().getContentType());
         assertEquals(JDYRecordService.BEARER + "1", httpEntity.getHeaders().get(JDYRecordService.AUTHORIZATION_HEADER).get(0));
