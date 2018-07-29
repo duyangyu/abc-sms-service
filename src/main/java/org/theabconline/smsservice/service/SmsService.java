@@ -3,72 +3,69 @@ package org.theabconline.smsservice.service;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.theabconline.smsservice.dto.SmsDTO;
-import org.theabconline.smsservice.dto.SmsExceptionDTO;
+import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.entity.RawMessageBO;
-import org.theabconline.smsservice.exception.SendSmsException;
+import org.theabconline.smsservice.entity.RecordBO;
+import org.theabconline.smsservice.entity.SmsMessageBO;
+import org.theabconline.smsservice.entity.SmsRequestBO;
+import org.theabconline.smsservice.mapping.FormMetadata;
+import org.theabconline.smsservice.mapping.SmsTemplate;
 import org.theabconline.smsservice.repository.RawMessageRepository;
+import org.theabconline.smsservice.repository.RecordRepository;
+import org.theabconline.smsservice.repository.SmsMessageRepository;
+import org.theabconline.smsservice.repository.SmsRequestRepository;
 
-import java.util.Date;
+import java.io.IOException;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
-@EnableScheduling
-public class SMSService {
+public class SmsService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SMSService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmsService.class);
 
     private final RawMessageRepository rawMessageRepository;
 
+    private final RecordRepository recordRepository;
+
+    private final SmsRequestRepository smsRequestRepository;
+
+    private final SmsMessageRepository smsMessageRepository;
+
     private final ValidationService validationService;
 
-    private final ParserService parserService;
+    private final ParsingService parsingService;
 
     private final AliyunSMSAdapter aliyunSMSAdapter;
 
     private final EmailService emailService;
 
-    private final LogService logService;
-
-    private final JDYRecordService jdyRecordService;
-
-    private final SMSTrackingService smsTrackingService;
-
-    private final Queue<String> messageQueue;
-
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
 
     @Autowired
-    public SMSService(RawMessageRepository rawMessageRepository,
+    public SmsService(RawMessageRepository rawMessageRepository,
+                      RecordRepository recordRepository,
+                      SmsRequestRepository smsRequestRepository,
+                      SmsMessageRepository smsMessageRepository,
                       ValidationService validationService,
-                      ParserService parserService,
+                      ParsingService parsingService,
                       AliyunSMSAdapter aliyunSMSAdapter,
-                      EmailService emailService,
-                      LogService logService,
-                      JDYRecordService jdyRecordService,
-                      SMSTrackingService smsTrackingService) {
+                      EmailService emailService) {
         this.rawMessageRepository = rawMessageRepository;
+        this.recordRepository = recordRepository;
+        this.smsRequestRepository = smsRequestRepository;
+        this.smsMessageRepository = smsMessageRepository;
         this.validationService = validationService;
-        this.parserService = parserService;
+        this.parsingService = parsingService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
         this.emailService = emailService;
-        this.logService = logService;
-        this.jdyRecordService = jdyRecordService;
-        this.smsTrackingService = smsTrackingService;
-        this.messageQueue = new ConcurrentLinkedQueue<>();
     }
 
     @Transactional
@@ -78,7 +75,6 @@ public class SMSService {
         rawMessageRepository.save(rawMessageBO);
     }
 
-    @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
     @Transactional
     public void processRawMessages() {
         List<RawMessageBO> unprocessedMessages = rawMessageRepository.getRawMessageBOSByIsProcessedFalse();
@@ -89,8 +85,99 @@ public class SMSService {
         rawMessageRepository.save(unprocessedMessages);
     }
 
-    private void processRawMessage(RawMessageBO rawMessage) {
+    void processRawMessage(RawMessageBO rawMessageBO) {
+        String appId = null;
+        String entryId = null;
+        String dataId = null;
+        FormMetadata formMetadata = null;
+        Exception parsingException = null;
+        try {
+            appId = parsingService.getAppId(rawMessageBO.getMessage());
+            entryId = parsingService.getEntryId(rawMessageBO.getMessage());
+            dataId = parsingService.getDataId(rawMessageBO.getMessage());
+            formMetadata = parsingService.getFormMetadata(rawMessageBO.getMessage());
+        } catch (Exception e) {
+            parsingException = e;
+        }
 
+        RecordBO recordBO = createRecordBO(rawMessageBO.getId(), appId, entryId, dataId, parsingException);
+        recordRepository.save(recordBO);
+
+        if (parsingException != null) {
+            handleParsingFailed(parsingException, rawMessageBO.getMessage());
+            return;
+        }
+
+        for (SmsTemplate smsTemplate : formMetadata.getSmsTemplates()) {
+            processSmsRequest(rawMessageBO.getMessage(), recordBO, smsTemplate);
+        }
+    }
+
+    void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
+        String phoneNumbers = null;
+        String templateCode = null;
+        String payload = null;
+        IOException parsingException = null;
+        try {
+            phoneNumbers = parsingService.getPhoneNumbers(rawMessage, smsTemplate.getPhoneNumbersWidget());
+            if (Strings.isNullOrEmpty(phoneNumbers) || Strings.isNullOrEmpty(phoneNumbers.trim())) {
+                return;
+            }
+            templateCode = smsTemplate.getSmsTemplateCode();
+            payload = parsingService.getPayload(rawMessage, smsTemplate.getFieldMappings());
+        } catch (IOException e) {
+            parsingException = e;
+        }
+
+        SmsRequestBO smsRequestBO = createSmsRequestBO(recordBO.getId(), phoneNumbers, templateCode, payload, parsingException);
+
+        if (parsingException != null) {
+            smsRequestRepository.save(smsRequestBO);
+            handleParsingFailed(parsingException, rawMessage);
+            return;
+        }
+
+        SmsRequestDTO smsRequestDTO = createSmsRequestDTO(phoneNumbers, templateCode, payload);
+        try {
+            SendSmsResponse sendSmsResponse = aliyunSMSAdapter.sendMessage(smsRequestDTO);
+            if (isMessageSent(sendSmsResponse)) {
+                smsRequestBO.setSent(true);
+                smsRequestBO.setBizId(sendSmsResponse.getBizId());
+            } else {
+                String errorMessage = sendSmsResponse.getMessage();
+                smsRequestBO.setErrorMessage(errorMessage);
+                handleSendingFailed(phoneNumbers, templateCode, payload, errorMessage);
+            }
+        } catch (ClientException e) {
+            smsRequestBO.setErrorMessage(e.getMessage());
+        }
+
+        smsRequestRepository.save(smsRequestBO);
+        saveSmsMessages(smsRequestBO);
+    }
+
+    void saveSmsMessages(SmsRequestBO smsRequestBO) {
+        List<String> phoneNumbersList = getTrimmedPhoneNumberList(smsRequestBO.getPhoneNumbers());
+
+        List<SmsMessageBO> smsMessageBOList = Lists.newArrayList();
+        for (String phoneNumber : phoneNumbersList) {
+            SmsMessageBO smsMessageBO = createSmsMessageBO(smsRequestBO, phoneNumber);
+            smsMessageBOList.add(smsMessageBO);
+        }
+        smsMessageRepository.save(smsMessageBOList);
+    }
+
+
+    void handleParsingFailed(Exception parsingException, String rawMessage) {
+        String subject = "SMS-Service - Parsing failed";
+        String content = String.format("%s\n%s", parsingException.getMessage(), rawMessage);
+        emailService.send(subject, content);
+    }
+
+    void handleSendingFailed(String phoneNumbers, String templateCode, String payload, String errorMessage) {
+        String title = "SMS-Service - Sending SMS message failed";
+        String content = String.format("Phone numbers: %s\nTemplate code: %s\nPayload: %s\nError message: %s", phoneNumbers, templateCode, payload, errorMessage);
+        emailService.send(title, content);
     }
 
     private void validateMessage(String message, String timestamp, String nonce, String sha1) {
@@ -104,112 +191,59 @@ public class SMSService {
         RawMessageBO bo = new RawMessageBO();
         bo.setMessage(message);
         bo.setProcessed(false);
-        bo.setCreatedOn(new Date());
 
         return bo;
     }
 
-    @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelay = 0)
-    public void processQueue() {
-        String message = messageQueue.poll();
+    private RecordBO createRecordBO(Long rawMessageId, String appId, String entryId, String dataId, Exception e) {
+        RecordBO recordBO = new RecordBO();
+        recordBO.setAppId(appId);
+        recordBO.setEntryId(entryId);
+        recordBO.setDataId(dataId);
+        recordBO.setErrorMessage(e == null ? null : e.getMessage());
+        recordBO.setRawMessageId(rawMessageId);
+        return recordBO;
+    }
 
-        if (message == null) {
-            return;
+    private SmsRequestBO createSmsRequestBO(Long recordId, String phoneNumbers, String templateCode, String payload, IOException parsingException) {
+        SmsRequestBO smsRequestBO = new SmsRequestBO();
+        smsRequestBO.setTemplateCode(templateCode);
+        smsRequestBO.setPhoneNumbers(phoneNumbers);
+        smsRequestBO.setPayload(payload);
+        smsRequestBO.setSent(false);
+        smsRequestBO.setErrorMessage(parsingException == null ? null : parsingException.getMessage());
+        smsRequestBO.setRecordId(recordId);
+        return smsRequestBO;
+    }
+
+    private SmsRequestDTO createSmsRequestDTO(String phoneNumbers, String templateCode, String payload) {
+        SmsRequestDTO smsRequestDTO = new SmsRequestDTO();
+        smsRequestDTO.setTemplateCode(templateCode);
+        smsRequestDTO.setPhoneNumber(phoneNumbers);
+        smsRequestDTO.setParams(payload);
+        return smsRequestDTO;
+    }
+
+    private SmsMessageBO createSmsMessageBO(SmsRequestBO smsRequestBO, String phoneNumber) {
+        SmsMessageBO smsMessageBO = new SmsMessageBO();
+        smsMessageBO.setPhoneNumber(phoneNumber);
+        smsMessageBO.setContent(smsRequestBO.getPayload());
+        smsMessageBO.setBizId(smsRequestBO.getBizId());
+        smsMessageBO.setSent(false);
+        smsMessageBO.setSmsRequestId(smsRequestBO.getId());
+        return smsMessageBO;
+    }
+
+    private boolean isMessageSent(SendSmsResponse sendSmsResponse) {
+        return sendSmsResponse.getCode() != null && sendSmsResponse.getCode().equals("OK");
+    }
+
+    private List<String> getTrimmedPhoneNumberList(String phoneNumbers) {
+        List<String> phoneNumbersList = Lists.newArrayList();
+        List<String> rawPhoneNumbers = Lists.newArrayList(phoneNumbers.split(","));
+        for (String rawPhoneNumber : rawPhoneNumbers) {
+            phoneNumbersList.add(rawPhoneNumber.trim());
         }
-
-        List<SmsDTO> smsDTOList = Lists.newArrayList();
-        String appId = null;
-        String entryId = null;
-        String dataId = null;
-        try {
-            smsDTOList = parserService.getSmsDTOList(message);
-            appId = parserService.getAppId(message);
-            entryId = parserService.getEntryId(message);
-            dataId = parserService.getDataId(message);
-        } catch (Exception e) {
-            String stacktraceString = Throwables.getStackTraceAsString(e);
-            handleParsingException(message + stacktraceString);
-            LOGGER.error(stacktraceString);
-        }
-
-        for (SmsDTO smsDTO : smsDTOList) {
-            if (Strings.isNullOrEmpty(smsDTO.getPhoneNumber())) {
-                LOGGER.error("Processed SMS message without phone number: {}", smsDTO.getParams());
-                continue;
-            }
-            String errorText = null;
-            SendSmsResponse sendSmsResponse = null;
-            try {
-                sendSmsResponse = aliyunSMSAdapter.sendMessage(smsDTO);
-                LOGGER.info("Message sent, to: {}, template: {}, payload: {}", smsDTO.getPhoneNumber(), smsDTO.getTemplateCode(), smsDTO.getParams());
-            } catch (ClientException e) {
-                errorText = e.getErrMsg();
-                LOGGER.error("Message not sent: {}", errorText);
-                handleSendingException(smsDTO, errorText);
-            } catch (SendSmsException e) {
-                errorText = e.getSendSmsResponse().getMessage();
-                LOGGER.error("Message not sent: {}", errorText);
-                handleSendingException(smsDTO, errorText);
-            } catch (Exception e) {
-                errorText = Throwables.getStackTraceAsString(e);
-                LOGGER.error("Message not sent: {}", errorText);
-                handleSendingException(smsDTO, errorText);
-            }
-
-            if (sendSmsResponse == null) {
-                return;
-            }
-
-            if (sendSmsResponse.getCode().equals("OK")) {
-                smsTrackingService.addSuccess(appId, entryId, dataId, smsDTO.getTemplateCode(), sendSmsResponse.getBizId(), smsDTO.getPhoneNumber().split(","));
-            } else {
-                smsTrackingService.addFailure(appId, entryId, dataId, smsDTO.getTemplateCode(), sendSmsResponse.getBizId(), smsDTO.getPhoneNumber().split(","), errorText);
-            }
-        }
+        return phoneNumbersList;
     }
-
-    @Scheduled(fixedDelayString = "${checkBlocking.fixedDelay:10000}", initialDelay = 0)
-    public void checkBlocking() {
-        if (messageQueue.size() > blockingThreshold) {
-            sendQueueBlockingEmail();
-        }
-    }
-
-    private void handleParsingException(String message) {
-        String subject = "Error! Failed to parse message from JianDaoYun";
-        String text = "Payload: \n" + message;
-        emailService.send(subject, text);
-        LOGGER.info("Sent parsing error email notification");
-    }
-
-    private void handleSendingException(SmsDTO smsDTO, String errorMessage) {
-        logError(smsDTO, errorMessage);
-        LOGGER.info("SMS delivery failure logged");
-
-        sendNotificationEmail(smsDTO, errorMessage);
-        LOGGER.info("SMS delivery failure email notification sent");
-    }
-
-    private void logError(SmsDTO smsDTO, String errorMessage) {
-        logService.logFailure(new SmsExceptionDTO(smsDTO, errorMessage));
-    }
-
-    private void sendNotificationEmail(SmsDTO smsDTO, String errorMessage) {
-        String subject = "Error! Failed to saveMessage sms to " + smsDTO.getPhoneNumber();
-        String text = "Recipient(s): " + smsDTO.getPhoneNumber() + "\n" +
-                "Template code: " + smsDTO.getTemplateCode() + "\n" +
-                "Payload: " + smsDTO.getParams() + "\n" +
-                "\n" +
-                "Error message: " + errorMessage;
-        emailService.send(subject, text);
-    }
-
-    private void sendQueueBlockingEmail() {
-        String subject = "Warning! SMS message queue size is larger than threshold, please check for potential issue";
-        String text = "";
-
-        emailService.send(subject, text);
-        LOGGER.info("Sent sms queue blocking email notification");
-    }
-
 }
