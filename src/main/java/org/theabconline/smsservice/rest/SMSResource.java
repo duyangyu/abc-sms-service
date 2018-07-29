@@ -3,16 +3,16 @@ package org.theabconline.smsservice.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.theabconline.smsservice.service.SMSService;
+import org.theabconline.smsservice.service.SmsService;
 
 @RequestMapping("/api")
 @RestController
 public class SMSResource {
 
-    private final SMSService smsService;
+    private final SmsService smsService;
 
     @Autowired
-    public SMSResource(SMSService smsService) {
+    public SMSResource(SmsService smsService) {
         this.smsService = smsService;
     }
 

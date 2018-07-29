@@ -13,8 +13,7 @@ import org.theabconline.smsservice.entity.RawMessageBO;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -26,16 +25,24 @@ public class RawMessageBORepositoryIntTest {
 
     @Test
     public void testSave() {
-        Date createdOn = new Date();
         RawMessageBO bo = new RawMessageBO();
         bo.setMessage("message");
         bo.setProcessed(false);
-        bo.setCreatedOn(createdOn);
 
         fixture.save(bo);
 
         List<RawMessageBO> boList = Lists.newArrayList(fixture.findAll());
         assertEquals(3, boList.size());
+        assertNotNull(bo.getCreatedOn());
+        assertNull(bo.getProcessedOn());
+    }
+
+    @Test
+    public void testSaveEmptyList() {
+        List<RawMessageBO> emptyList = Lists.newArrayList();
+        fixture.save(emptyList);
+
+        assertEquals(2, fixture.count());
     }
 
     @Test

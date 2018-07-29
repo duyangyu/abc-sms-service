@@ -1,16 +1,12 @@
-create table SMS_MESSAGE
-(
-	id int auto_increment
-		primary key,
-	phone_number varchar(15) null,
-	content nvarchar(4000) null,
-	is_sent tinyint(1) default '0' null,
-	error_message nvarchar(4000) null,
-	sent_on datetime null,
-	updated_on datetime null,
-	sms_request_id int null,
-	constraint SMS_MESSAGE_SMS_REQUEST_id_fk
-		foreign key (sms_request_id) references SMS_REQUEST (id)
+CREATE TABLE SMS_MESSAGE (
+  id             int(11) NOT NULL AUTO_INCREMENT,
+  phone_number   varchar(20),
+  content        varchar(4000),
+  biz_id         varchar(20),
+  is_sent        tinyint(1),
+  error_message  varchar(4000),
+  sent_on        datetime,
+  updated_on     datetime,
+  sms_request_id int(11),
+  PRIMARY KEY (id)
 )
-;
-

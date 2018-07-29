@@ -1,13 +1,10 @@
-create table RAW_MESSAGE
-(
-  id           int auto_increment
-    primary key,
-  message      nvarchar(4000)                     not null,
-  is_processed tinyint(1) default '0'             null,
-  created_on   datetime default CURRENT_TIMESTAMP null,
-  processed_on datetime                           null
-);
-
-create index RAW_MESSAGE_processed_index
-  on RAW_MESSAGE (is_processed);
-
+CREATE TABLE RAW_MESSAGE (
+  id           int(11) NOT NULL AUTO_INCREMENT,
+  message      varchar(4000),
+  is_processed tinyint(1),
+  created_on   datetime,
+  processed_on datetime,
+  PRIMARY KEY (id),
+  KEY RAW_MESSAGE_created_on_index (created_on),
+  KEY RAW_MESSAGE_processed_index (is_processed)
+)

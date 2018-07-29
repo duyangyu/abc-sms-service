@@ -5,7 +5,7 @@ import com.google.common.collect.Maps;
 
 import java.util.Map;
 
-public class JDYRecordDTO {
+public class JdyRecordDTO {
 
     @JsonIgnore
     String appId;
@@ -16,10 +16,10 @@ public class JDYRecordDTO {
     private String data_id;
     private Map<String, Map<String, String>> data;
 
-    public JDYRecordDTO() {
+    public JdyRecordDTO() {
     }
 
-    public JDYRecordDTO(String appId,
+    public JdyRecordDTO(String appId,
                         String entryId,
                         String data_id,
                         String messageSentWidget,

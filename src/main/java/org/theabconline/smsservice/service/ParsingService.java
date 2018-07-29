@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.dto.JDYRecordDTO;
-import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.JdyRecordDTO;
+import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 import org.theabconline.smsservice.mapping.*;
 
@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class ParserService {
+public class ParsingService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ParserService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ParsingService.class);
 
     private static final String DATA_ID_WIDGET = "_id";
 
@@ -44,7 +44,7 @@ public class ParserService {
     private Map<String, Form> idFormsMap = new HashMap<>();
 
     @Autowired
-    public ParserService(ObjectMapper mapper, FormMappings formMappings) {
+    public ParsingService(ObjectMapper mapper, FormMappings formMappings) {
         this.mapper = mapper;
         this.formMappings = formMappings;
     }
@@ -56,12 +56,9 @@ public class ParserService {
         }
     }
 
-    public List<SmsDTO> getSmsDTOList(String message) throws IOException {
-        List<SmsDTO> smsDTOList = Lists.newArrayList();
-        String formId = getFormId(message);
-        Form form = getForm(formId);
-        String metadataWidget = form.getMetadataWidget();
-        FormMetadata formMetadata = mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
+    public List<SmsRequestDTO> getSmsDTOList(String message) throws IOException {
+        List<SmsRequestDTO> smsRequestDTOList = Lists.newArrayList();
+        FormMetadata formMetadata = getFormMetadata(message);
         for (SmsTemplate smsTemplate : formMetadata.getSmsTemplates()) {
             String smsTemplateCode = smsTemplate.getSmsTemplateCode();
             String phoneNumbers = getPhoneNumbers(message, smsTemplate.getPhoneNumbersWidget());
@@ -70,18 +67,26 @@ public class ParserService {
                 String fieldValue = getFieldValue(message, fieldMapping.getWidget());
                 params.put(fieldMapping.getSmsField(), fieldValue);
             }
-            SmsDTO smsDTO = new SmsDTO(phoneNumbers, smsTemplateCode, mapper.writeValueAsString(params));
-            smsDTOList.add(smsDTO);
+            SmsRequestDTO smsRequestDTO = new SmsRequestDTO(phoneNumbers, smsTemplateCode, mapper.writeValueAsString(params));
+            smsRequestDTOList.add(smsRequestDTO);
         }
 
-        return smsDTOList;
+        return smsRequestDTOList;
     }
 
-    public JDYRecordDTO getJDYRecordDTO(String message, String errorMessage) throws IOException {
+    public FormMetadata getFormMetadata(String message) throws IOException {
+        String formId = getFormId(message);
+        Form form = getForm(formId);
+        String metadataWidget = form.getMetadataWidget();
+        return mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
+    }
+
+
+    public JdyRecordDTO getJDYRecordDTO(String message, String errorMessage) throws IOException {
         String formId = getFormId(message);
         Form form = getForm(formId);
         String dataId = getFieldValue(message, DATA_ID_WIDGET);
-        return new JDYRecordDTO(form.getAppId(),
+        return new JdyRecordDTO(form.getAppId(),
                 form.getEntryId(),
                 dataId,
                 form.getMessageSentWidget(),
@@ -91,7 +96,7 @@ public class ParserService {
         );
     }
 
-    private String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
+    public String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
         String result;
         JsonNode phoneNumberField = mapper.readTree(message).at(FormMappings.DEFAULT_PATH).get(phoneNumbersWidget);
 
@@ -103,6 +108,16 @@ public class ParserService {
         }
 
         return result;
+    }
+
+    public String getPayload(String message, List<FieldMapping> fieldMappings) throws IOException {
+        Map<String, String> payloadMap = Maps.newHashMap();
+        for (FieldMapping fieldMapping : fieldMappings) {
+            String fieldValue = getFieldValue(message, fieldMapping.getWidget());
+            payloadMap.put(fieldMapping.getSmsField(), fieldValue);
+        }
+
+        return mapper.writeValueAsString(payloadMap);
     }
 
     public UserRegistrationDTO getUserParams(String message) throws IOException {
@@ -143,14 +158,15 @@ public class ParserService {
     }
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
-        JsonNode jsonTree = mapper.readTree(message);
-
         String fieldValue;
+
         try {
+            JsonNode jsonTree = mapper.readTree(message);
             fieldValue = jsonTree.at(path).get(fieldName).textValue();
-        } catch (Exception e) {
+        } catch (IOException e) {
+            String errorMessage = String.format("Error parsing - path: %s, field name: %s", path, fieldName);
             LOGGER.error("Unable to get field value. path: {}, field name: {}, message: {}", path, fieldName, message);
-            throw e;
+            throw new IOException(errorMessage);
         }
 
         return fieldValue;
@@ -160,7 +176,7 @@ public class ParserService {
         Form form = idFormsMap.get(formId);
 
         if (form == null) {
-            throw new RuntimeException("Invalid form id");
+            throw new RuntimeException(String.format("Cannot find formId %s", formId));
         }
 
         return form;

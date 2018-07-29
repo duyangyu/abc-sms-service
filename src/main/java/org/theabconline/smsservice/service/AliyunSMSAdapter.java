@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.exception.SendSmsException;
 
 @Service
@@ -30,25 +30,18 @@ public class AliyunSMSAdapter {
     @Value("${aliyun.secret}")
     private String secret;
 
-    public SendSmsResponse sendMessage(SmsDTO smsDTO) throws ClientException {
+    public SendSmsResponse sendMessage(SmsRequestDTO smsRequestDTO) throws ClientException {
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKey, secret);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", PRODUCT, DOMAIN);
         IAcsClient acsClient = new DefaultAcsClient(profile);
 
         SendSmsRequest request = new SendSmsRequest();
         request.setMethod(MethodType.POST);
-        request.setPhoneNumbers(smsDTO.getPhoneNumber());
+        request.setPhoneNumbers(smsRequestDTO.getPhoneNumber());
         request.setSignName(SIGNATURE);
-        request.setTemplateCode(smsDTO.getTemplateCode());
-        request.setTemplateParam(smsDTO.getParams());
+        request.setTemplateCode(smsRequestDTO.getTemplateCode());
+        request.setTemplateParam(smsRequestDTO.getParams());
 
-        SendSmsResponse sendSmsResponse = acsClient.getAcsResponse(request);
-
-        if (sendSmsResponse.getCode() == null || !sendSmsResponse.getCode().equals("OK")) {
-            LOGGER.debug("response code: {}", sendSmsResponse.getCode());
-            throw new SendSmsException(sendSmsResponse);
-        }
-
-        return sendSmsResponse;
+        return acsClient.getAcsResponse(request);
     }
 }

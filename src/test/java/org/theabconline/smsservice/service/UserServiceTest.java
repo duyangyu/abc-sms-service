@@ -16,7 +16,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.theabconline.smsservice.dto.AccessTokenDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
-import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
 import org.theabconline.smsservice.dto.UserRegistrationResponseDTO;
 
 import java.io.IOException;
@@ -41,13 +40,13 @@ public class UserServiceTest {
     private UserService fixture;
 
     @Mock
-    private ParserService parserService;
+    private ParsingService parsingService;
 
     @Mock
     private EmailService emailService;
 
-    @Mock
-    private LogService logService;
+//    @Mock
+//    private LogService logService;
 
     @Mock
     private ValidationService validationService;
@@ -83,7 +82,7 @@ public class UserServiceTest {
         userRegistrationDTO.setMobile(mobile);
         when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        when(parserService.getUserParams(anyString())).thenReturn(userRegistrationDTO);
+        when(parsingService.getUserParams(anyString())).thenReturn(userRegistrationDTO);
 
         fixture.createUser("message", "timestamp", "nonce", "sha1");
 
@@ -111,7 +110,7 @@ public class UserServiceTest {
         String message = "message";
         when(validationService.isValid(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        when(parserService.getUserParams(anyString())).thenThrow(new IOException());
+        when(parsingService.getUserParams(anyString())).thenThrow(new IOException());
 
         fixture.createUser(message, "timestamp", "nonce", "sha1");
 
@@ -204,11 +203,11 @@ public class UserServiceTest {
 
         ArgumentCaptor<String> emailContentCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService, times(1)).send(anyString(), emailContentCaptor.capture());
-        ArgumentCaptor<UserRegistrationFailureDTO> failureDTOArgumentCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
-        verify(logService, times(1)).logFailure(failureDTOArgumentCaptor.capture());
+//        ArgumentCaptor<UserRegistrationFailureDTO> failureDTOArgumentCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
+//        verify(logService, times(1)).logFailure(failureDTOArgumentCaptor.capture());
         assertEquals(0, messageQueue.size());
         assertEquals(emailContent, emailContentCaptor.getValue());
-        assertEquals(UserService.UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE, failureDTOArgumentCaptor.getValue().getErrorMessage());
+//        assertEquals(UserService.UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE, failureDTOArgumentCaptor.getValue().getErrorMessage());
     }
 
     @Test
@@ -227,15 +226,15 @@ public class UserServiceTest {
         when(restTemplate.postForEntity(eq(url), eq(userRegistrationDTO), eq(UserRegistrationResponseDTO.class)))
                 .thenReturn(response);
         ArgumentCaptor<String> emailContentCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<UserRegistrationFailureDTO> failureLogCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
+//        ArgumentCaptor<UserRegistrationFailureDTO> failureLogCaptor = ArgumentCaptor.forClass(UserRegistrationFailureDTO.class);
 
         fixture.processQueue();
 
         assertEquals(0, messageQueue.size());
         verify(emailService, times(1)).send(anyString(), emailContentCaptor.capture());
-        verify(logService, times(1)).logFailure(failureLogCaptor.capture());
+//        verify(logService, times(1)).logFailure(failureLogCaptor.capture());
         assertTrue(emailContentCaptor.getValue().contains(userCreationErrorMessage));
-        assertEquals(userCreationErrorMessage, failureLogCaptor.getValue().getErrorMessage());
+//        assertEquals(userCreationErrorMessage, failureLogCaptor.getValue().getErrorMessage());
     }
 
     @Test

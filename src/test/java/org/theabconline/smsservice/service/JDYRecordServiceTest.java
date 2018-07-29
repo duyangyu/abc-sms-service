@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
-import org.theabconline.smsservice.dto.JDYRecordDTO;
+import org.theabconline.smsservice.dto.JdyRecordDTO;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.eq;
@@ -43,7 +43,7 @@ public class JDYRecordServiceTest {
         boolean isMessageSent = true;
         String errorMessageWidget = "errorMessageWidget";
         String errorMessage = "errorMessage";
-        JDYRecordDTO jdyRecordDTO = new JDYRecordDTO(appId, entryId, dataId, messageSentWidget, isMessageSent, errorMessageWidget, errorMessage);
+        JdyRecordDTO jdyRecordDTO = new JdyRecordDTO(appId, entryId, dataId, messageSentWidget, isMessageSent, errorMessageWidget, errorMessage);
 
         fixture.updateRecordStatus(jdyRecordDTO);
 

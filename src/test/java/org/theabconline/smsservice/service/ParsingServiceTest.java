@@ -6,7 +6,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.theabconline.smsservice.dto.SmsDTO;
+import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 
 import java.io.IOException;
@@ -16,7 +16,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-public class ParserServiceTest {
+public class ParsingServiceTest {
 
     private static final String PAYLOAD_MULTIPLE = "{ \"data\": { \"appId\": \"appId1\", \"entryId\": \"entryId1\", \"metadataField\": \"{ \\\"smsTemplates\\\": [ { \\\"smsTemplateCode\\\": \\\"smsTemplateCode1\\\", \\\"phoneNumbersWidget\\\": \\\"phoneNumberField1\\\", \\\"fieldMappings\\\": [ { \\\"widget\\\": \\\"widget1\\\", \\\"smsField\\\": \\\"smsField1\\\" }, { \\\"widget\\\": \\\"widget2\\\", \\\"smsField\\\": \\\"smsField2\\\" } ] }, { \\\"smsTemplateCode\\\": \\\"smsTemplateCode2\\\", \\\"phoneNumbersWidget\\\": \\\"phoneNumberField2\\\", \\\"fieldMappings\\\": [ { \\\"widget\\\": \\\"widget3\\\", \\\"smsField\\\": \\\"smsField3\\\" } ] } ] }\", \"phoneNumberField1\": [ \"123\", \"456\" ], \"widget1\": \"widget1\", \"widget2\": \"widget2\", \"phoneNumberField2\": \"789\", \"widget3\": \"widget3\" } }";
     private static final String PAYLOAD_INVALID = "{\"data\":{\"appId\":\"appId3\",\"entryId\":\"entryId3\"}}";
@@ -34,21 +34,21 @@ public class ParserServiceTest {
     private static final String USER_REGISTRATION_MOBILE = "mobile";
 
     @InjectMocks
-    ParserService fixture;
+    ParsingService fixture;
 
     @Test
     public void testGetSmsParamsMultipleRecipients() throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
-        List<SmsDTO> voList = fixture.getSmsDTOList(PAYLOAD_MULTIPLE);
+        List<SmsRequestDTO> voList = fixture.getSmsDTOList(PAYLOAD_MULTIPLE);
 
         assertEquals(2, voList.size());
-        SmsDTO result1 = voList.get(0);
+        SmsRequestDTO result1 = voList.get(0);
         assertEquals(PHONE_NUMBER_1_MULTI, result1.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_1_MULTI, result1.getTemplateCode());
         JsonNode expectedJson = objectMapper.readTree(PARAMS_1_MULTI);
         JsonNode actualJson = objectMapper.readTree(result1.getParams());
         assertTrue(expectedJson.equals(actualJson));
-        SmsDTO result2 = voList.get(1);
+        SmsRequestDTO result2 = voList.get(1);
         assertEquals(PHONE_NUMBER_2_MULTI, result2.getPhoneNumber());
         assertEquals(TEMPLATE_CODE_2_MULTI, result2.getTemplateCode());
         assertEquals(PARAMS_2_MULTI, result2.getParams());

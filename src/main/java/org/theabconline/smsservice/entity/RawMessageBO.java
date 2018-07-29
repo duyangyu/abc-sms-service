@@ -29,6 +29,16 @@ public class RawMessageBO {
     public RawMessageBO() {
     }
 
+    @PrePersist
+    public void onPrePersist() {
+        createdOn = new Date();
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        processedOn = new Date();
+    }
+
     public Long getId() {
         return id;
     }

@@ -8,7 +8,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.theabconline.smsservice.dto.JDYRecordDTO;
+import org.theabconline.smsservice.dto.JdyRecordDTO;
 
 @Service
 public class JDYRecordService {
@@ -30,7 +30,7 @@ public class JDYRecordService {
         this.restTemplate = restTemplate;
     }
 
-    public void updateRecordStatus(JDYRecordDTO jdyRecordDTO) {
+    public void updateRecordStatus(JdyRecordDTO jdyRecordDTO) {
         String requestUrl = buildRequestUrl(jdyRecordDTO.getAppId(), jdyRecordDTO.getEntryId());
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
