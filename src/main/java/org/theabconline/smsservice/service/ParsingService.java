@@ -68,21 +68,6 @@ public class ParsingService {
         return form.getErrorMessageWidget();
     }
 
-
-    public JdyRecordDTO getJDYRecordDTO(String message, String errorMessage) throws IOException {
-        String formId = getFormId(message);
-        Form form = getForm(formId);
-        String dataId = getFieldValue(message, DATA_ID_WIDGET);
-        return new JdyRecordDTO(form.getAppId(),
-                form.getEntryId(),
-                dataId,
-                form.getMessageSentWidget(),
-                errorMessage.length() == 0,
-                form.getErrorMessageWidget(),
-                errorMessage
-        );
-    }
-
     public String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
         String result;
         JsonNode phoneNumberField = mapper.readTree(message).at(FormMappings.DEFAULT_PATH).get(phoneNumbersWidget);

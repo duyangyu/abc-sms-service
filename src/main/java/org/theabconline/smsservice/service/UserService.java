@@ -14,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.theabconline.smsservice.dto.AccessTokenDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
-//import org.theabconline.smsservice.dto.UserRegistrationFailureDTO;
 import org.theabconline.smsservice.dto.UserRegistrationResponseDTO;
 import org.theabconline.smsservice.exception.UpdateTokenException;
 import org.theabconline.smsservice.exception.UserCreationException;
@@ -27,17 +26,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @EnableScheduling
 public class UserService {
 
-    public static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
-    public static final String CORP_ID_KEY = "corpid";
-    public static final String CORP_SECRET_KEY = "corpsecret";
-    public static final String ACCESS_TOKEN_KEY = "access_token";
-    public static final String CREATED_MESSAGE = "created";
-    public static final String UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE = "Unable to update access token";
-    public static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
+    static final String CORP_ID_KEY = "corpid";
+    static final String CORP_SECRET_KEY = "corpsecret";
+    static final String ACCESS_TOKEN_KEY = "access_token";
+    static final String CREATED_MESSAGE = "created";
+    static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
     private final ParsingService parsingService;
     private final EmailService emailService;
-//    private final LogService logService;
     private final ValidationService validationService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -62,12 +59,10 @@ public class UserService {
     public UserService(ParsingService parsingService,
                        RestTemplate restTemplate,
                        EmailService emailService,
-//                       LogService logService,
                        ValidationService validationService, ObjectMapper objectMapper) {
         this.parsingService = parsingService;
         this.restTemplate = restTemplate;
         this.emailService = emailService;
-//        this.logService = logService;
         this.validationService = validationService;
         this.objectMapper = objectMapper;
         this.messageQueue = new ConcurrentLinkedQueue<>();
@@ -117,14 +112,12 @@ public class UserService {
         String text = "Error message: " + errorMessage + "\n"
                 + "payload: " + userRegistrationDTOString;
         emailService.send("Failed to create user", text);
-//        logService.logFailure(new UserRegistrationFailureDTO(userRegistrationDTO, errorMessage));
         LOGGER.error("Failed to create user, payload: {}, error message: {}", userRegistrationDTOString);
         LOGGER.debug("User: {}", userRegistrationDTOString);
     }
 
     private void handleUpdateTokenException(UserRegistrationDTO userRegistrationDTO) throws JsonProcessingException {
         emailService.send("Failed to update access token", objectMapper.writeValueAsString(userRegistrationDTO));
-//        logService.logFailure(new UserRegistrationFailureDTO(userRegistrationDTO, UNABLE_TO_UPDATE_ACCESS_TOKEN_MESSAGE));
         LOGGER.debug("Failed to create user due to unable to update access token, user: {}", objectMapper.writeValueAsString(userRegistrationDTO));
     }
 
@@ -143,7 +136,7 @@ public class UserService {
             throw new UpdateTokenException("Failed to update access token for creating new user");
         }
         this.accessToken = accessTokenDTO.getAccess_token();
-        Long expireInMillis = accessTokenDTO.getExpires_in() * 1000; // unit of expires_in field is second
+        long expireInMillis = accessTokenDTO.getExpires_in() * 1000; // unit of expires_in field is second
         this.expirationTime = System.currentTimeMillis() + expireInMillis - 10 * 1000; // put 10 seconds buffer
         LOGGER.debug("Access token updated, token: {}, expire time: {}", accessToken, expirationTime);
     }
