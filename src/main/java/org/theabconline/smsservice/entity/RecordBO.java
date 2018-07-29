@@ -27,13 +27,12 @@ public class RecordBO {
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdOn;
 
-    @Column(name = "updated_on_1", columnDefinition = "DATETIME")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date updatedOn1;
+    @Column(name = "update_count")
+    private Integer updateCount;
 
-    @Column(name = "updated_on_2", columnDefinition = "DATETIME")
+    @Column(name = "updated_on", columnDefinition = "DATETIME")
     @Temporal(TemporalType.TIMESTAMP)
-    private Date updatedOn2;
+    private Date updatedOn;
 
     @Column(name = "raw_message_id")
     private Long rawMessageId;
@@ -43,7 +42,16 @@ public class RecordBO {
 
     @PrePersist
     public void onPrePersist() {
-        createdOn = new Date();
+        Date date = new Date();
+        createdOn = date;
+        updatedOn = date;
+        updateCount = 0;
+    }
+
+    @PreUpdate
+    public void onPreUpdate() {
+        updatedOn = new Date();
+        updateCount += 1;
     }
 
     public Long getId() {
@@ -94,20 +102,20 @@ public class RecordBO {
         this.createdOn = createdOn;
     }
 
-    public Date getUpdatedOn1() {
-        return updatedOn1;
+    public Integer getUpdateCount() {
+        return updateCount;
     }
 
-    public void setUpdatedOn1(Date updatedOn1) {
-        this.updatedOn1 = updatedOn1;
+    public void setUpdateCount(Integer updateCount) {
+        this.updateCount = updateCount;
     }
 
-    public Date getUpdatedOn2() {
-        return updatedOn2;
+    public Date getUpdatedOn() {
+        return updatedOn;
     }
 
-    public void setUpdatedOn2(Date updatedOn2) {
-        this.updatedOn2 = updatedOn2;
+    public void setUpdatedOn(Date updatedOn) {
+        this.updatedOn = updatedOn;
     }
 
     public Long getRawMessageId() {

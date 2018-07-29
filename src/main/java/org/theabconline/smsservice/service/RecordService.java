@@ -16,9 +16,9 @@ import org.theabconline.smsservice.repository.RecordRepository;
 import java.util.List;
 
 @Service
-public class RawMessageService {
+public class RecordService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(RawMessageService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RecordService.class);
 
     private final RawMessageRepository rawMessageRepository;
 
@@ -36,12 +36,12 @@ public class RawMessageService {
     private Integer blockingThreshold;
 
     @Autowired
-    public RawMessageService(RawMessageRepository rawMessageRepository,
-                             RecordRepository recordRepository,
-                             ValidationService validationService,
-                             ParsingService parsingService,
-                             SmsRequestService smsRequestService,
-                             ErrorHandlingService errorHandlingService) {
+    public RecordService(RawMessageRepository rawMessageRepository,
+                         RecordRepository recordRepository,
+                         ValidationService validationService,
+                         ParsingService parsingService,
+                         SmsRequestService smsRequestService,
+                         ErrorHandlingService errorHandlingService) {
         this.rawMessageRepository = rawMessageRepository;
         this.recordRepository = recordRepository;
         this.validationService = validationService;
@@ -51,7 +51,7 @@ public class RawMessageService {
     }
 
     @Transactional
-    public void saveMessage(String message, String timestamp, String nonce, String sha1) {
+    public void saveRawMessage(String message, String timestamp, String nonce, String sha1) {
         validateMessage(message, timestamp, nonce, sha1);
         RawMessageBO rawMessageBO = createRawMessageBO(message);
         rawMessageRepository.save(rawMessageBO);
@@ -65,6 +65,11 @@ public class RawMessageService {
             unprocessedMessage.setProcessed(true);
         }
         rawMessageRepository.save(unprocessedMessages);
+    }
+
+    @Transactional
+    public Long getUnprocessedCount() {
+        return rawMessageRepository.countByIsProcessedFalse();
     }
 
     void processRawMessage(RawMessageBO rawMessageBO) {

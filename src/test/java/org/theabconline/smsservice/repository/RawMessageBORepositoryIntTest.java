@@ -7,10 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.transaction.annotation.Transactional;
 import org.theabconline.smsservice.entity.RawMessageBO;
 
-import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -55,4 +53,8 @@ public class RawMessageBORepositoryIntTest {
         assertFalse(bo.getProcessed());
     }
 
+    @Test
+    public void testCountByIsProcessedFalse() {
+        assertEquals(Long.valueOf(1), fixture.countByIsProcessedFalse());
+    }
 }

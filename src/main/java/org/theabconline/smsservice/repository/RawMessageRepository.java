@@ -10,4 +10,6 @@ import java.util.List;
 public interface RawMessageRepository extends PagingAndSortingRepository<RawMessageBO, Long> {
 
     List<RawMessageBO> getRawMessageBOSByIsProcessedFalse();
+
+    Long countByIsProcessedFalse();
 }

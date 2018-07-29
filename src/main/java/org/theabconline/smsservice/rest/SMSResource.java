@@ -3,17 +3,17 @@ package org.theabconline.smsservice.rest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.theabconline.smsservice.service.RawMessageService;
+import org.theabconline.smsservice.service.RecordService;
 
 @RequestMapping("/api")
 @RestController
 public class SMSResource {
 
-    private final RawMessageService rawMessageService;
+    private final RecordService recordService;
 
     @Autowired
-    public SMSResource(RawMessageService rawMessageService) {
-        this.rawMessageService = rawMessageService;
+    public SMSResource(RecordService recordService) {
+        this.recordService = recordService;
     }
 
     @RequestMapping(value = "/sms", method = RequestMethod.POST)
@@ -21,7 +21,7 @@ public class SMSResource {
                                       @RequestParam String nonce,
                                       @RequestHeader(value = "X-JDY-Signature") String sha1,
                                       @RequestBody String message) {
-        rawMessageService.saveMessage(message, timestamp, nonce, sha1);
+        recordService.saveRawMessage(message, timestamp, nonce, sha1);
 
         return ResponseEntity.ok().build();
     }

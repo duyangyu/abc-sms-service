@@ -21,10 +21,10 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-public class RawMessageServiceTest {
+public class RecordServiceTest {
 
     @InjectMocks
-    private RawMessageService fixture;
+    private RecordService fixture;
 
     @Mock
     private RawMessageRepository rawMessageRepository;
@@ -54,7 +54,7 @@ public class RawMessageServiceTest {
         ArgumentCaptor<RawMessageBO> rawMessageBOArgumentCaptor = ArgumentCaptor.forClass(RawMessageBO.class);
         when(validationService.isValid(eq(message), eq(timestamp), eq(nonce), eq(sha1))).thenReturn(true);
 
-        fixture.saveMessage(message, timestamp, nonce, sha1);
+        fixture.saveRawMessage(message, timestamp, nonce, sha1);
 
         verify(rawMessageRepository, times(1)).save(rawMessageBOArgumentCaptor.capture());
         RawMessageBO rawMessageBO = rawMessageBOArgumentCaptor.getValue();
@@ -71,7 +71,7 @@ public class RawMessageServiceTest {
         when(validationService.isValid(eq(message), eq(timestamp), eq(nonce), eq(sha1))).thenReturn(false);
 
         try {
-            fixture.saveMessage(message, timestamp, nonce, sha1);
+            fixture.saveRawMessage(message, timestamp, nonce, sha1);
         } catch (Exception e) {
             assertEquals("Invalid Message", e.getMessage());
         }
@@ -83,7 +83,7 @@ public class RawMessageServiceTest {
     public void testProcessRawMessages() {
         String message = "message";
         RawMessageBO rawMessageBO = createRawMessageBO(message);
-        RawMessageService fixtureSpy = spy(fixture);
+        RecordService fixtureSpy = spy(fixture);
         ArgumentCaptor<List> rawMessageBOListArgumentCaptor = ArgumentCaptor.forClass(List.class);
         when(rawMessageRepository.getRawMessageBOSByIsProcessedFalse()).thenReturn(Lists.newArrayList(rawMessageBO));
         doNothing().when(fixtureSpy).processRawMessage(eq(rawMessageBO));
@@ -155,6 +155,13 @@ public class RawMessageServiceTest {
         assertEquals(exceptionMessage, recordBO.getErrorMessage());
         verify(errorHandlingService, times(1)).handleParsingFailed(eq(parsingException), eq(message));
         verify(smsRequestService, times(0)).processSmsRequest(anyString(), any(RecordBO.class), any(SmsTemplate.class));
+    }
+
+    @Test
+    public void testGetUnprocessedCount() {
+        fixture.getUnprocessedCount();
+
+        verify(rawMessageRepository, times(1)).countByIsProcessedFalse();
     }
 
     private RawMessageBO createRawMessageBO(String message) {
