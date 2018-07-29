@@ -11,14 +11,6 @@ public class UserRegistrationDTO {
     public UserRegistrationDTO() {
     }
 
-    public UserRegistrationDTO(String userid, String name, Integer department, String email, String mobile) {
-        this.userid = userid;
-        this.name = name;
-        this.department = department;
-        this.email = email;
-        this.mobile = mobile;
-    }
-
     public String getUserid() {
         return userid;
     }

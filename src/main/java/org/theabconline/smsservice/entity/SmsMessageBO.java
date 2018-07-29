@@ -37,6 +37,9 @@ public class SmsMessageBO {
     @Column(name = "sms_request_id")
     private Long smsRequestId;
 
+    @Column(name = "record_id")
+    private Long recordId;
+
     public SmsMessageBO() {
     }
 
@@ -110,5 +113,13 @@ public class SmsMessageBO {
 
     public void setSmsRequestId(Long smsRequestId) {
         this.smsRequestId = smsRequestId;
+    }
+
+    public Long getRecordId() {
+        return recordId;
+    }
+
+    public void setRecordId(Long recordId) {
+        this.recordId = recordId;
     }
 }

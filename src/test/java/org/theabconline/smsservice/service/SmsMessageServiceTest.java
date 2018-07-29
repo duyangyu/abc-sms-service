@@ -29,17 +29,19 @@ public class SmsMessageServiceTest {
 
     @Test
     public void testSaveSmsMessages() {
-        Long id = 1L;
+        Long smsRequestId = 1L;
+        Long recordId = 2L;
         String payload = "payload";
         String bizId = "biz id";
         String phoneNumber1 = "phone number1";
         String phoneNumber2 = "pohne number2";
         String phoneNumbers = String.format(" %s, %s ", phoneNumber1, phoneNumber2);
         SmsRequestBO smsRequestBO = new SmsRequestBO();
-        smsRequestBO.setId(id);
+        smsRequestBO.setId(smsRequestId);
         smsRequestBO.setPayload(payload);
         smsRequestBO.setBizId(bizId);
         smsRequestBO.setPhoneNumbers(phoneNumbers);
+        smsRequestBO.setRecordId(recordId);
         ArgumentCaptor<List> smsMessageBOListArgumentCaprtor = ArgumentCaptor.forClass(List.class);
 
         fixture.saveSmsMessages(smsRequestBO);
@@ -52,7 +54,7 @@ public class SmsMessageServiceTest {
         assertEquals(phoneNumber1, smsMessageBO1.getPhoneNumber());
         assertFalse(smsMessageBO1.getSent());
         assertNull(smsMessageBO1.getErrorMessage());
-        assertEquals(id, smsMessageBO1.getSmsRequestId());
-
+        assertEquals(smsRequestId, smsMessageBO1.getSmsRequestId());
+        assertEquals(recordId, smsMessageBO1.getRecordId());
     }
 }

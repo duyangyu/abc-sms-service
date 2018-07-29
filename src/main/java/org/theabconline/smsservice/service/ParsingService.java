@@ -63,6 +63,11 @@ public class ParsingService {
         return mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
     }
 
+    public String getMessageWidget(String appId, String entryId) {
+        Form form = idFormsMap.get(appId + entryId);
+        return form.getErrorMessageWidget();
+    }
+
 
     public JdyRecordDTO getJDYRecordDTO(String message, String errorMessage) throws IOException {
         String formId = getFormId(message);

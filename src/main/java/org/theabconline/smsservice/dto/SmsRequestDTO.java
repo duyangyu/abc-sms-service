@@ -9,12 +9,6 @@ public class SmsRequestDTO {
     public SmsRequestDTO() {
     }
 
-    public SmsRequestDTO(String phoneNumber, String templateCode, String params) {
-        this.phoneNumber = phoneNumber;
-        this.templateCode = templateCode;
-        this.params = params;
-    }
-
     public String getPhoneNumber() {
         return phoneNumber;
     }

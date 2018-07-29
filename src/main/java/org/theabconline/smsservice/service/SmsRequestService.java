@@ -12,6 +12,8 @@ import org.theabconline.smsservice.mapping.SmsTemplate;
 import org.theabconline.smsservice.repository.SmsRequestRepository;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 @Service
 public class SmsRequestService {
@@ -39,7 +41,7 @@ public class SmsRequestService {
         this.aliyunSMSAdapter = aliyunSMSAdapter;
     }
 
-    void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
+    public void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
         String phoneNumbers = null;
         String templateCode = null;
         String payload = null;
@@ -82,6 +84,16 @@ public class SmsRequestService {
         smsMessageService.saveSmsMessages(smsRequestBO);
     }
 
+    public String getErrorMessage(RecordBO recordBO) {
+        List<SmsRequestBO> smsRequestBOList = smsRequestRepository.getAllByRecordId(recordBO.getId());
+        StringBuilder sb = new StringBuilder();
+        for (SmsRequestBO smsRequestBO : smsRequestBOList) {
+            sb.append(Objects.toString(smsRequestBO.getErrorMessage(), ""));
+        }
+
+        return sb.toString();
+    }
+
     private SmsRequestBO createSmsRequestBO(Long recordId, String phoneNumbers, String templateCode, String payload, IOException parsingException) {
         SmsRequestBO smsRequestBO = new SmsRequestBO();
         smsRequestBO.setTemplateCode(templateCode);
@@ -106,5 +118,4 @@ public class SmsRequestService {
     private boolean isMessageSent(SendSmsResponse sendSmsResponse) {
         return sendSmsResponse.getCode() != null && sendSmsResponse.getCode().equals("OK");
     }
-
 }
