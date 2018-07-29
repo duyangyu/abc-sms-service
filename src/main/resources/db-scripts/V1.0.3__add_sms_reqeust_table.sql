@@ -1,7 +1,7 @@
 CREATE TABLE SMS_REQUEST (
   id            int(11) NOT NULL AUTO_INCREMENT,
-  biz_id        varchar(20),
-  template_code varchar(20),
+  biz_id        varchar(50),
+  template_code varchar(50),
   phone_numbers varchar(8000),
   payload       varchar(4000),
   is_sent       tinyint(1),
