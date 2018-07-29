@@ -20,10 +20,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-public class JDYRecordServiceTest {
+public class JdyServiceTest {
 
     @InjectMocks
-    private JDYRecordService fixture;
+    private JdyService fixture;
 
     @Mock
     private RestTemplate restTemplate;
@@ -45,7 +45,7 @@ public class JDYRecordServiceTest {
         String errorMessage = "errorMessage";
         JdyRecordDTO jdyRecordDTO = new JdyRecordDTO(appId, entryId, dataId, messageSentWidget, isMessageSent, errorMessageWidget, errorMessage);
 
-        fixture.updateRecordStatus(jdyRecordDTO);
+        fixture.updateRecord(jdyRecordDTO);
 
         String requestUrlString = "https://www.jiandaoyun.com/api/v1/app/appId/entry/entryId/data_update";
         ArgumentCaptor<HttpEntity> httpEntityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
@@ -53,7 +53,7 @@ public class JDYRecordServiceTest {
         verify(restTemplate, times(1)).exchange(eq(requestUrlString), eq(HttpMethod.POST), httpEntityCaptor.capture(), eq(String.class));
         HttpEntity<?> httpEntity = httpEntityCaptor.getValue();
         assertEquals(MediaType.APPLICATION_JSON, httpEntity.getHeaders().getContentType());
-        assertEquals(JDYRecordService.BEARER + "1", httpEntity.getHeaders().get(JDYRecordService.AUTHORIZATION_HEADER).get(0));
+        assertEquals(JdyService.BEARER + "1", httpEntity.getHeaders().get(JdyService.AUTHORIZATION_HEADER).get(0));
         assertEquals(jdyRecordDTO, httpEntity.getBody());
     }
 

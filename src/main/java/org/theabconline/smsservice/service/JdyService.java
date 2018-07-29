@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 import org.theabconline.smsservice.dto.JdyRecordDTO;
 
 @Service
-public class JDYRecordService {
+public class JdyService {
 
     static final String BEARER = "Bearer ";
     static final String AUTHORIZATION_HEADER = "Authorization";
@@ -26,11 +26,11 @@ public class JDYRecordService {
 
 
     @Autowired
-    public JDYRecordService(RestTemplate restTemplate) {
+    public JdyService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
-    public void updateRecordStatus(JdyRecordDTO jdyRecordDTO) {
+    public void updateRecord(JdyRecordDTO jdyRecordDTO) {
         String requestUrl = buildRequestUrl(jdyRecordDTO.getAppId(), jdyRecordDTO.getEntryId());
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

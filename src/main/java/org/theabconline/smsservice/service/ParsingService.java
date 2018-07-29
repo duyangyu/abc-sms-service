@@ -56,24 +56,6 @@ public class ParsingService {
         }
     }
 
-    public List<SmsRequestDTO> getSmsDTOList(String message) throws IOException {
-        List<SmsRequestDTO> smsRequestDTOList = Lists.newArrayList();
-        FormMetadata formMetadata = getFormMetadata(message);
-        for (SmsTemplate smsTemplate : formMetadata.getSmsTemplates()) {
-            String smsTemplateCode = smsTemplate.getSmsTemplateCode();
-            String phoneNumbers = getPhoneNumbers(message, smsTemplate.getPhoneNumbersWidget());
-            Map<String, String> params = Maps.newHashMap();
-            for (FieldMapping fieldMapping : smsTemplate.getFieldMappings()) {
-                String fieldValue = getFieldValue(message, fieldMapping.getWidget());
-                params.put(fieldMapping.getSmsField(), fieldValue);
-            }
-            SmsRequestDTO smsRequestDTO = new SmsRequestDTO(phoneNumbers, smsTemplateCode, mapper.writeValueAsString(params));
-            smsRequestDTOList.add(smsRequestDTO);
-        }
-
-        return smsRequestDTOList;
-    }
-
     public FormMetadata getFormMetadata(String message) throws IOException {
         String formId = getFormId(message);
         Form form = getForm(formId);

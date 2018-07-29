@@ -3,7 +3,6 @@ package org.theabconline.smsservice.service;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -25,7 +24,6 @@ import org.theabconline.smsservice.repository.SmsRequestRepository;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -98,7 +96,7 @@ public class SmsServiceTest {
     @Test
     public void testProcessRawMessages() {
         String message = "message";
-        RawMessageBO rawMessageBO = createRawMessageBO(message, false);
+        RawMessageBO rawMessageBO = createRawMessageBO(message);
         SmsService fixtureSpy = spy(fixture);
         ArgumentCaptor<List> rawMessageBOListArgumentCaptor = ArgumentCaptor.forClass(List.class);
         when(rawMessageRepository.getRawMessageBOSByIsProcessedFalse()).thenReturn(Lists.newArrayList(rawMessageBO));
@@ -118,7 +116,7 @@ public class SmsServiceTest {
     public void testProcessRawMessageHappyPath() throws IOException {
         Long rawMessageId = 1L;
         String message = "message";
-        RawMessageBO rawMessageBO = createRawMessageBO(rawMessageId, message, false);
+        RawMessageBO rawMessageBO = createRawMessageBO(rawMessageId, message);
         String appId = "appId";
         String entryId = "entryId";
         String dataId = "dataId";
@@ -148,7 +146,7 @@ public class SmsServiceTest {
     public void testProcessRawMessageWithParsingException() throws IOException {
         Long rawMessageId = 1L;
         String message = "message";
-        RawMessageBO rawMessageBO = createRawMessageBO(rawMessageId, message, false);
+        RawMessageBO rawMessageBO = createRawMessageBO(rawMessageId, message);
         String appId = "appId";
         String entryId = "entryId";
         FormMetadata formMetadata = new FormMetadata();
@@ -326,7 +324,6 @@ public class SmsServiceTest {
         String phoneNumbers = "phone numbers";
         String templateCode = "template code";
         String payload = "payload";
-        String bizId = "biz id";
         List<FieldMapping> fieldMappings = Lists.newArrayList();
         SmsTemplate smsTemplate = new SmsTemplate();
         smsTemplate.setPhoneNumbersWidget(phoneNumbersWidget);
@@ -352,6 +349,7 @@ public class SmsServiceTest {
         assertEquals(phoneNumbers, smsRequestDTO.getPhoneNumber());
         assertEquals(templateCode, smsRequestDTO.getTemplateCode());
         assertEquals(payload, smsRequestDTO.getParams());
+        verify(fixtureSpy, times(1)).handleSendingFailed(eq(phoneNumbers), eq(templateCode), eq(payload), eq(errorMessage));
         verify(smsRequestRepository, times(1)).save(smsRequestBOArgumentCaptor.capture());
         SmsRequestBO smsRequestBO = smsRequestBOArgumentCaptor.getValue();
         assertNull(smsRequestBO.getBizId());
@@ -393,15 +391,15 @@ public class SmsServiceTest {
 
     }
 
-    private RawMessageBO createRawMessageBO(String message, Boolean isProcessed) {
-        return createRawMessageBO(null, message, isProcessed);
+    private RawMessageBO createRawMessageBO(String message) {
+        return createRawMessageBO(null, message);
     }
 
-    private RawMessageBO createRawMessageBO(Long id, String message, Boolean isProcessed) {
+    private RawMessageBO createRawMessageBO(Long id, String message) {
         RawMessageBO rawMessageBO = new RawMessageBO();
         rawMessageBO.setId(id);
         rawMessageBO.setMessage(message);
-        rawMessageBO.setProcessed(isProcessed);
+        rawMessageBO.setProcessed(false);
         return rawMessageBO;
     }
 
