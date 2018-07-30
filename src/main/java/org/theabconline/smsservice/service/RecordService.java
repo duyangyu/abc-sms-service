@@ -88,7 +88,7 @@ public class RecordService {
 
     @Transactional
     public void updateRecordsStatus(Integer maxCount, Long lastUpdatedInMillis) {
-        List<RecordBO> records = recordRepository.findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(maxCount, new Date(lastUpdatedInMillis));
+        List<RecordBO> records = recordRepository.findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(maxCount, new Date(System.currentTimeMillis() - lastUpdatedInMillis));
         for (RecordBO recordBO : records) {
             StringBuilder sb = new StringBuilder();
             sb.append(Objects.toString(recordBO.getErrorMessage(), ""))

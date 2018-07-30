@@ -3,10 +3,7 @@ package org.theabconline.smsservice.service;
 import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.theabconline.smsservice.dto.JdyRecordDTO;
@@ -37,13 +34,15 @@ public class JdyService {
         this.parsingService = parsingService;
     }
 
-    public void updateRecordMessage(RecordBO recordBO, String message) {
+    public String updateRecordMessage(RecordBO recordBO, String message) {
         String requestUrl = buildRequestUrl(recordBO.getAppId(), recordBO.getEntryId());
         JdyRecordDTO jdyRecordDTO = getPayload(recordBO, message);
         HttpHeaders headers = getHttpHeaders();
         HttpEntity<?> httpEntity = new HttpEntity<Object>(jdyRecordDTO, headers);
 
-        restTemplate.exchange(requestUrl, HttpMethod.POST, httpEntity, String.class);
+        ResponseEntity<String> response = restTemplate.exchange(requestUrl, HttpMethod.POST, httpEntity, String.class);
+
+        return response.getBody();
     }
 
     String buildRequestUrl(String appId, String entryId) {

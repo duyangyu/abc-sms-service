@@ -62,7 +62,7 @@ public class SmsMessageService {
             sb.append(smsMessageBO.getPhoneNumber()).append(",");
         }
 
-        return toString();
+        return sb.toString();
     }
 
     String getPhoneNumbersNotSent(RecordBO recordBO) {
