@@ -48,12 +48,6 @@ public class RecordBO {
         updateCount = 0;
     }
 
-    @PreUpdate
-    public void onPreUpdate() {
-        updatedOn = new Date();
-        updateCount += 1;
-    }
-
     public Long getId() {
         return id;
     }
