@@ -64,7 +64,7 @@ public class ParsingService {
     }
 
     public String getMessageWidget(String appId, String entryId) {
-        Form form = idFormsMap.get(appId + entryId);
+        Form form = getForm(appId + entryId);
         return form.getErrorMessageWidget();
     }
 
