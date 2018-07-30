@@ -62,7 +62,7 @@ public class RecordService {
 
     @Transactional
     public void saveRawMessage(String message, String timestamp, String nonce, String sha1) {
-        validateMessage(message, timestamp, nonce, sha1);
+//        validateMessage(message, timestamp, nonce, sha1);
         RawMessageBO rawMessageBO = createRawMessageBO(message);
         rawMessageRepository.save(rawMessageBO);
     }

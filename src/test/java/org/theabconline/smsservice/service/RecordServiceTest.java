@@ -7,6 +7,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.theabconline.smsservice.entity.RawMessageBO;
 import org.theabconline.smsservice.entity.RecordBO;
 import org.theabconline.smsservice.mapping.FormMetadata;
@@ -159,9 +160,15 @@ public class RecordServiceTest {
 
     @Test
     public void testGetUnprocessedCount() {
+        Integer blockingThreshold = 2;
+        Long actualNumber = blockingThreshold + 1L;
+        ReflectionTestUtils.setField(fixture, "blockingThreshold", blockingThreshold);
+        when(rawMessageRepository.countByIsProcessedFalse()).thenReturn(actualNumber);
+
         fixture.checkBlocking();
 
         verify(rawMessageRepository, times(1)).countByIsProcessedFalse();
+        verify(errorHandlingService, times(1)).handleBlocking(eq(actualNumber));
     }
 
     private RawMessageBO createRawMessageBO(String message) {
