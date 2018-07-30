@@ -7,4 +7,4 @@ CREATE TABLE RAW_MESSAGE (
   PRIMARY KEY (id),
   KEY RAW_MESSAGE_created_on_index (created_on),
   KEY RAW_MESSAGE_processed_index (is_processed)
-)
+);

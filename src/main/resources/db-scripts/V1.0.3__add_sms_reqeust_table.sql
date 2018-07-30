@@ -8,5 +8,6 @@ CREATE TABLE SMS_REQUEST (
   error_message varchar(4000),
   created_on    datetime,
   record_id     int(11),
-  PRIMARY KEY (id)
-)
+  PRIMARY KEY (id),
+  KEY SMS_REQUEST_record_id_index (record_id)
+);

@@ -8,5 +8,7 @@ CREATE TABLE RECORD (
   update_count   int(11),
   updated_on     datetime,
   raw_message_id int(11),
-  PRIMARY KEY (id)
-)
+  PRIMARY KEY (id),
+  KEY RECORD_update_count_index (update_count),
+  KEY RECORD_updated_on_index (updated_on)
+);
