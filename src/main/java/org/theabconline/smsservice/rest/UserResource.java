@@ -30,10 +30,4 @@ public class UserResource {
         return ResponseEntity.ok().build();
     }
 
-    @RequestMapping(value = "/test", method = RequestMethod.POST)
-    public ResponseEntity createUser(@RequestBody String message) {
-        LOGGER.info(message);
-
-        return ResponseEntity.ok().body("{\"code\": 0}");
-    }
 }
