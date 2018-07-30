@@ -1,4 +1,4 @@
-CREATE TABLE RAW_MESSAGE (
+CREATE TABLE raw_message (
   id           int(11) NOT NULL AUTO_INCREMENT,
   message      varchar(4000),
   is_processed tinyint(1),

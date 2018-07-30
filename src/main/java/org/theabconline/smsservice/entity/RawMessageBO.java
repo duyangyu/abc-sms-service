@@ -4,7 +4,7 @@ package org.theabconline.smsservice.entity;
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity(name = "RAW_MESSAGE")
+@Entity(name = "raw_message")
 public class RawMessageBO {
 
     @Id

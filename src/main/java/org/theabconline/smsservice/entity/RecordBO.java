@@ -3,7 +3,7 @@ package org.theabconline.smsservice.entity;
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity(name = "RECORD")
+@Entity(name = "record")
 public class RecordBO {
 
     @Id

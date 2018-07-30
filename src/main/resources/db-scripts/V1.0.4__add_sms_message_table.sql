@@ -1,4 +1,4 @@
-create table SMS_MESSAGE
+create table sms_message
 (
   id             int auto_increment,
   phone_number   varchar(30),

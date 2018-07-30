@@ -3,7 +3,7 @@ package org.theabconline.smsservice.entity;
 import javax.persistence.*;
 import java.util.Date;
 
-@Entity(name = "SMS_MESSAGE")
+@Entity(name = "sms_message")
 public class SmsMessageBO {
 
     @Id

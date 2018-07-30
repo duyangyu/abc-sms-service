@@ -1,4 +1,4 @@
-CREATE TABLE SMS_REQUEST (
+CREATE TABLE sms_request (
   id            int(11) NOT NULL AUTO_INCREMENT,
   biz_id        varchar(50),
   template_code varchar(50),

@@ -1,4 +1,4 @@
-CREATE TABLE RECORD (
+CREATE TABLE record (
   id             int(11) NOT NULL AUTO_INCREMENT,
   app_id         varchar(50),
   entry_id       varchar(50),
