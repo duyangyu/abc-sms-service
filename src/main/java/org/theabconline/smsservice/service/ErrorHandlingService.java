@@ -24,4 +24,10 @@ public class ErrorHandlingService {
         String content = String.format("Phone numbers: %s\nTemplate code: %s\nPayload: %s\nError message: %s", phoneNumbers, templateCode, payload, errorMessage);
         emailService.send(title, content);
     }
+
+    void handleBlocking(Long numberMessagesNotProcessed) {
+        String title = "SMS-Service - Blocking detected";
+        String content = String.format("Number of unprocessed messaged: %d", numberMessagesNotProcessed);
+        emailService.send(title, content);
+    }
 }

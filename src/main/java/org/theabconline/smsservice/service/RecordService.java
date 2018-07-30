@@ -78,8 +78,12 @@ public class RecordService {
     }
 
     @Transactional
-    public Long getUnprocessedCount() {
-        return rawMessageRepository.countByIsProcessedFalse();
+    public void checkBlocking() {
+
+        Long numberMessagesNotProcessed = rawMessageRepository.countByIsProcessedFalse();
+        if (numberMessagesNotProcessed > blockingThreshold) {
+            errorHandlingService.handleBlocking(numberMessagesNotProcessed);
+        }
     }
 
     @Transactional

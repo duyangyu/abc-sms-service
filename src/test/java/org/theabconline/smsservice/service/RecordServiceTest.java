@@ -159,7 +159,7 @@ public class RecordServiceTest {
 
     @Test
     public void testGetUnprocessedCount() {
-        fixture.getUnprocessedCount();
+        fixture.checkBlocking();
 
         verify(rawMessageRepository, times(1)).countByIsProcessedFalse();
     }
