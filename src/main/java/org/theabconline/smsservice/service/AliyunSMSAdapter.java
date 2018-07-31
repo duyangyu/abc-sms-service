@@ -8,17 +8,12 @@ import com.aliyuncs.exceptions.ClientException;
 import com.aliyuncs.http.MethodType;
 import com.aliyuncs.profile.DefaultProfile;
 import com.aliyuncs.profile.IClientProfile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.theabconline.smsservice.dto.SmsRequestDTO;
-import org.theabconline.smsservice.exception.SendSmsException;
 
 @Service
 public class AliyunSMSAdapter {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AliyunSMSAdapter.class);
 
     private static final String PRODUCT = "Dysmsapi";
     private static final String DOMAIN = "dysmsapi.aliyuncs.com";
@@ -30,7 +25,7 @@ public class AliyunSMSAdapter {
     @Value("${aliyun.secret}")
     private String secret;
 
-    public SendSmsResponse sendMessage(SmsRequestDTO smsRequestDTO) throws ClientException {
+    SendSmsResponse sendMessage(SmsRequestDTO smsRequestDTO) throws ClientException {
         IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKey, secret);
         DefaultProfile.addEndpoint("cn-hangzhou", "cn-hangzhou", PRODUCT, DOMAIN);
         IAcsClient acsClient = new DefaultAcsClient(profile);

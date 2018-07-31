@@ -34,7 +34,7 @@ public class JdyService {
         this.parsingService = parsingService;
     }
 
-    public String updateRecordMessage(RecordBO recordBO, String message) {
+    String updateRecordMessage(RecordBO recordBO, String message) {
         String requestUrl = buildRequestUrl(recordBO.getAppId(), recordBO.getEntryId());
         JdyRecordDTO jdyRecordDTO = getPayload(recordBO, message);
         HttpHeaders headers = getHttpHeaders();
