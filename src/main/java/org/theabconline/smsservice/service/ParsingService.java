@@ -3,21 +3,18 @@ package org.theabconline.smsservice.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.dto.JdyRecordDTO;
-import org.theabconline.smsservice.dto.SmsRequestDTO;
-import org.theabconline.smsservice.dto.UserRegistrationDTO;
-import org.theabconline.smsservice.mapping.*;
+import org.theabconline.smsservice.entity.FormBO;
+import org.theabconline.smsservice.mapping.FieldMapping;
+import org.theabconline.smsservice.mapping.FormMetadata;
+import org.theabconline.smsservice.repository.FormRepository;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,51 +23,43 @@ public class ParsingService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParsingService.class);
 
-    private static final String DATA_ID_WIDGET = "_id";
+    @Value("${jdyun.defaultPath:/data}")
+    private String defaultPath;
+
+    @Value("${jdyun.appIdFieldName:appId}")
+    private String appIdWidget;
+
+    @Value("${jdyun.entryIdFieldName:entryId}")
+    private String entryIdWidget;
+
+    @Value("${jdyun.dataIdFieldName:_id")
+    private String dataIdWidget;
 
     private ObjectMapper mapper;
 
-    private FormMappings formMappings;
-
-    @Value("${jdyun.formIdPath:/data}")
-    private String formIdPath;
-
-    @Value("${jdyun.appIdFieldName:appId}")
-    private String appIdFieldName;
-
-    @Value("${jdyun.entryIdFieldName:entryId}")
-    private String entryIdFieldName;
-
-    private Map<String, Form> idFormsMap = new HashMap<>();
+    private FormRepository formRepository;
 
     @Autowired
-    public ParsingService(ObjectMapper mapper, FormMappings formMappings) {
+    public ParsingService(ObjectMapper mapper,
+                          FormRepository formRepository) {
         this.mapper = mapper;
-        this.formMappings = formMappings;
+        this.formRepository = formRepository;
     }
 
-    @PostConstruct
-    private void buildIdFormsMap() {
-        for (Form form : formMappings.getForms()) {
-            idFormsMap.put(form.getFormId(), form);
-        }
-    }
-
-    public FormMetadata getFormMetadata(String message) throws IOException {
-        String formId = getFormId(message);
-        Form form = getForm(formId);
-        String metadataWidget = form.getMetadataWidget();
+    FormMetadata getFormMetadata(String message) throws IOException {
+        FormBO formBO = getFormBO(message);
+        String metadataWidget = formBO.getMetadataWidget();
         return mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
     }
 
-    public String getMessageWidget(String appId, String entryId) {
-        Form form = getForm(appId + entryId);
-        return form.getErrorMessageWidget();
+    String getMessageWidget(String appId, String entryId) {
+        FormBO formBO = getFormBO(appId, entryId);
+        return formBO.getMessageWidget();
     }
 
-    public String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
+    String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
         String result;
-        JsonNode phoneNumberField = mapper.readTree(message).at(FormMappings.DEFAULT_PATH).get(phoneNumbersWidget);
+        JsonNode phoneNumberField = mapper.readTree(message).at(defaultPath).get(phoneNumbersWidget);
 
         if (phoneNumberField.isArray()) {
             List phoneNumberList = mapper.convertValue(phoneNumberField, List.class);
@@ -82,7 +71,7 @@ public class ParsingService {
         return result;
     }
 
-    public String getPayload(String message, List<FieldMapping> fieldMappings) throws IOException {
+    String getPayload(String message, List<FieldMapping> fieldMappings) throws IOException {
         Map<String, String> payloadMap = Maps.newHashMap();
         for (FieldMapping fieldMapping : fieldMappings) {
             String fieldValue = getFieldValue(message, fieldMapping.getWidget());
@@ -92,41 +81,20 @@ public class ParsingService {
         return mapper.writeValueAsString(payloadMap);
     }
 
-    public UserRegistrationDTO getUserParams(String message) throws IOException {
-        UserRegistrationDTO result = new UserRegistrationDTO();
-        RegistrationForm registrationForm = formMappings.getRegistrationForm();
-
-        String name = getFieldValue(message, registrationForm.getNameFieldName());
-        String email = getFieldValue(message, registrationForm.getEmailFieldName());
-        String mobile = getFieldValue(message, registrationForm.getMobileFieldName());
-
-        result.setName(name);
-        result.setEmail(email);
-        result.setMobile(mobile);
-
-        return result;
+    String getAppId(String message) throws IOException {
+        return getFieldValue(message, appIdWidget);
     }
 
-    public String getAppId(String message) throws IOException {
-        return getFieldValue(message, appIdFieldName);
+    String getEntryId(String message) throws IOException {
+        return getFieldValue(message, entryIdWidget);
     }
 
-    public String getEntryId(String message) throws IOException {
-        return getFieldValue(message, entryIdFieldName);
+    String getDataId(String message) throws IOException {
+        return getFieldValue(message, dataIdWidget);
     }
 
-    public String getDataId(String message) throws IOException {
-        return getFieldValue(message, DATA_ID_WIDGET);
-    }
-
-    private String getFormId(String message) throws IOException {
-        String entryId = getFieldValue(message, formIdPath, entryIdFieldName);
-        String appId = getFieldValue(message, formIdPath, appIdFieldName);
-        return appId + entryId;
-    }
-
-    private String getFieldValue(String message, String fieldName) throws IOException {
-        return getFieldValue(message, FormMappings.DEFAULT_PATH, fieldName);
+    String getFieldValue(String message, String fieldName) throws IOException {
+        return getFieldValue(message, defaultPath, fieldName);
     }
 
     private String getFieldValue(String message, String path, String fieldName) throws IOException {
@@ -144,14 +112,21 @@ public class ParsingService {
         return fieldValue;
     }
 
-    private Form getForm(String formId) {
-        Form form = idFormsMap.get(formId);
+    private FormBO getFormBO(String message) throws IOException {
+        String appId = getAppId(message);
+        String entryId = getEntryId(message);
 
-        if (form == null) {
-            throw new RuntimeException(String.format("Cannot find formId %s", formId));
+        return getFormBO(appId, entryId);
+    }
+
+    private FormBO getFormBO(String appId, String entryId) {
+        List<FormBO> formBOList = formRepository.findAllByAppIdAndEntryId(appId, entryId);
+
+        if (formBOList.size() != 1 || formBOList.get(0) == null) {
+            throw new RuntimeException(String.format("Cannot find form appId: %s, entryId: %s  ", appId, entryId));
         }
 
-        return form;
+        return formBOList.get(0);
     }
 
 }

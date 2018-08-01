@@ -33,12 +33,15 @@ public class UserService {
     static final String ACCESS_TOKEN_KEY = "access_token";
     static final String CREATED_MESSAGE = "created";
     static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
+
     private final ParsingService parsingService;
     private final EmailService emailService;
     private final ValidationService validationService;
+    private final ErrorHandlingService errorHandlingService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final Queue<UserRegistrationDTO> messageQueue;
+
     @Value("${aliyun.corpid}")
     private String corpId;
     @Value("${aliyun.corpsecret}")
@@ -51,6 +54,13 @@ public class UserService {
     private String createUserUrl;
     @Value("${checkBlocking.threshold:10}")
     private Integer blockingThreshold;
+    @Value("${registration.form.nameFieldName}")
+    private String nameWidget;
+    @Value("${registration.form.emailFieldName}")
+    private String emailWidget;
+    @Value("${registration.form.mobileFieldName}")
+    private String mobileWidget;
+
     private String accessToken;
 
     private Long expirationTime;
@@ -59,11 +69,14 @@ public class UserService {
     public UserService(ParsingService parsingService,
                        RestTemplate restTemplate,
                        EmailService emailService,
-                       ValidationService validationService, ObjectMapper objectMapper) {
+                       ValidationService validationService,
+                       ErrorHandlingService errorHandlingService,
+                       ObjectMapper objectMapper) {
         this.parsingService = parsingService;
         this.restTemplate = restTemplate;
         this.emailService = emailService;
         this.validationService = validationService;
+        this.errorHandlingService = errorHandlingService;
         this.objectMapper = objectMapper;
         this.messageQueue = new ConcurrentLinkedQueue<>();
     }
@@ -75,11 +88,11 @@ public class UserService {
             throw new RuntimeException("Invalid Message");
         }
         try {
-            UserRegistrationDTO userRegistrationDTO = parsingService.getUserParams(message);
-            userRegistrationDTO.setUserid(String.valueOf(System.currentTimeMillis())); // this should be ok for now since we only have 1 instance
+            UserRegistrationDTO userRegistrationDTO = getUserParams(message);
+            userRegistrationDTO.setUserid(String.valueOf(System.currentTimeMillis())); // this should be ok for now since there is only have 1 instance
             userRegistrationDTO.setDepartment(departmentId);
             messageQueue.add(userRegistrationDTO);
-        } catch (IOException e) {
+        } catch (Exception e) {
             handleParsingException(message);
         }
     }
@@ -168,5 +181,19 @@ public class UserService {
 
         emailService.send(subject, text);
         LOGGER.info("Sent user creation queue blocking email notification");
+    }
+
+    private UserRegistrationDTO getUserParams(String message) throws IOException {
+        UserRegistrationDTO result = new UserRegistrationDTO();
+
+        String name = parsingService.getFieldValue(message, nameWidget);
+        String email = parsingService.getFieldValue(message, emailWidget);
+        String mobile = parsingService.getFieldValue(message, mobileWidget);
+
+        result.setName(name);
+        result.setEmail(email);
+        result.setMobile(mobile);
+
+        return result;
     }
 }
