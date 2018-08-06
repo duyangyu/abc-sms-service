@@ -35,9 +35,9 @@ public class ParsingService {
     @Value("${jdyun.dataIdFieldName:_id")
     private String dataIdWidget;
 
-    private ObjectMapper mapper;
+    private final ObjectMapper mapper;
 
-    private FormRepository formRepository;
+    private final FormRepository formRepository;
 
     @Autowired
     public ParsingService(ObjectMapper mapper,
@@ -46,15 +46,22 @@ public class ParsingService {
         this.formRepository = formRepository;
     }
 
+    String getAppId(String message) throws IOException {
+        return getFieldValue(message, appIdWidget);
+    }
+
+    String getEntryId(String message) throws IOException {
+        return getFieldValue(message, entryIdWidget);
+    }
+
+    String getDataId(String message) throws IOException {
+        return getFieldValue(message, dataIdWidget);
+    }
+
     FormMetadata getFormMetadata(String message) throws IOException {
         FormBO formBO = getFormBO(message);
         String metadataWidget = formBO.getMetadataWidget();
         return mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
-    }
-
-    String getMessageWidget(String appId, String entryId) {
-        FormBO formBO = getFormBO(appId, entryId);
-        return formBO.getMessageWidget();
     }
 
     String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
@@ -81,16 +88,9 @@ public class ParsingService {
         return mapper.writeValueAsString(payloadMap);
     }
 
-    String getAppId(String message) throws IOException {
-        return getFieldValue(message, appIdWidget);
-    }
-
-    String getEntryId(String message) throws IOException {
-        return getFieldValue(message, entryIdWidget);
-    }
-
-    String getDataId(String message) throws IOException {
-        return getFieldValue(message, dataIdWidget);
+    String getMessageWidget(String appId, String entryId) {
+        FormBO formBO = getFormBO(appId, entryId);
+        return formBO.getMessageWidget();
     }
 
     String getFieldValue(String message, String fieldName) throws IOException {
