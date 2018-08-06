@@ -32,7 +32,7 @@ public class ParsingService {
     @Value("${jdyun.entryIdFieldName:entryId}")
     private String entryIdWidget;
 
-    @Value("${jdyun.dataIdFieldName:_id")
+    @Value("${jdyun.dataIdFieldName:_id}")
     private String dataIdWidget;
 
     private final ObjectMapper mapper;
