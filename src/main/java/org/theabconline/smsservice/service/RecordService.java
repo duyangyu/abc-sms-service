@@ -79,7 +79,6 @@ public class RecordService {
 
     @Transactional
     public void checkBlocking() {
-
         Long numberMessagesNotProcessed = rawMessageRepository.countByIsProcessedFalse();
         if (numberMessagesNotProcessed > blockingThreshold) {
             errorHandlingService.handleBlocking(numberMessagesNotProcessed);
@@ -131,6 +130,8 @@ public class RecordService {
         recordRepository.save(recordBO);
 
         if (parsingException != null) {
+            recordBO.setUpdateCount(Integer.MAX_VALUE);
+            recordRepository.save(recordBO);
             errorHandlingService.handleParsingFailed(parsingException, rawMessageBO.getMessage());
             return;
         }
