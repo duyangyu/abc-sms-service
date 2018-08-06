@@ -44,6 +44,14 @@ public class FormBO {
         this.appId = appId;
     }
 
+    public String getEntryId() {
+        return entryId;
+    }
+
+    public void setEntryId(String entryId) {
+        this.entryId = entryId;
+    }
+
     public String getMetadataWidget() {
         return metadataWidget;
     }
