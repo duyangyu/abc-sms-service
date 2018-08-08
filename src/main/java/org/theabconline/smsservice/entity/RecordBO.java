@@ -27,13 +27,6 @@ public class RecordBO {
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdOn;
 
-    @Column(name = "update_count")
-    private Integer updateCount;
-
-    @Column(name = "updated_on", columnDefinition = "DATETIME")
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date updatedOn;
-
     @Column(name = "raw_message_id")
     private Long rawMessageId;
 
@@ -44,8 +37,6 @@ public class RecordBO {
     public void onPrePersist() {
         Date date = new Date();
         createdOn = date;
-        updatedOn = date;
-        updateCount = 0;
     }
 
     public Long getId() {
@@ -94,22 +85,6 @@ public class RecordBO {
 
     public void setCreatedOn(Date createdOn) {
         this.createdOn = createdOn;
-    }
-
-    public Integer getUpdateCount() {
-        return updateCount;
-    }
-
-    public void setUpdateCount(Integer updateCount) {
-        this.updateCount = updateCount;
-    }
-
-    public Date getUpdatedOn() {
-        return updatedOn;
-    }
-
-    public void setUpdatedOn(Date updatedOn) {
-        this.updatedOn = updatedOn;
     }
 
     public Long getRawMessageId() {

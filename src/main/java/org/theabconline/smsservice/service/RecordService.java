@@ -85,32 +85,6 @@ public class RecordService {
         }
     }
 
-    @Transactional
-    public void updateRecordsStatus(Integer maxCount, Long lastUpdatedInMillis) {
-        List<RecordBO> records = recordRepository.findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(maxCount, new Date(System.currentTimeMillis() - lastUpdatedInMillis));
-        for (RecordBO recordBO : records) {
-            recordBO.setUpdatedOn(new Date());
-            recordBO.setUpdateCount(recordBO.getUpdateCount() + 1);
-            try {
-                StringBuilder sb = new StringBuilder();
-                sb.append(Objects.toString(recordBO.getErrorMessage(), ""))
-                        .append(";")
-                        .append(smsRequestService.getErrorMessage(recordBO))
-                        .append(";")
-                        .append("Sent: ")
-                        .append(smsMessageService.getPhoneNumbersSent(recordBO))
-                        .append(";")
-                        .append("Not sent: ")
-                        .append(smsMessageService.getPhoneNumbersNotSent(recordBO));
-                jdyService.updateRecordMessage(recordBO, sb.toString());
-            } catch (Exception e) {
-                e.printStackTrace();
-                errorHandlingService.handleUpdatingRecordFailure(recordBO, e.getMessage());
-            }
-        }
-        recordRepository.save(records);
-    }
-
     void processRawMessage(RawMessageBO rawMessageBO) {
         String appId = null;
         String entryId = null;
@@ -130,8 +104,6 @@ public class RecordService {
         recordRepository.save(recordBO);
 
         if (parsingException != null) {
-            recordBO.setUpdateCount(Integer.MAX_VALUE);
-            recordRepository.save(recordBO);
             errorHandlingService.handleParsingFailed(parsingException, rawMessageBO.getMessage());
             return;
         }

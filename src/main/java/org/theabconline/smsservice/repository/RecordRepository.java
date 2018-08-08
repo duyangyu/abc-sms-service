@@ -9,6 +9,4 @@ import java.util.List;
 
 @Repository
 public interface RecordRepository extends PagingAndSortingRepository<RecordBO, Long> {
-
-    List<RecordBO> findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(Integer maxCount, Date lastUpdatedOn);
 }

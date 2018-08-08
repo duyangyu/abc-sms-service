@@ -147,14 +147,13 @@ public class RecordServiceTest {
 
         fixture.processRawMessage(rawMessageBO);
 
-        verify(recordRepository, times(2)).save(recordBOArgumentCaptor.capture());
+        verify(recordRepository, times(1)).save(recordBOArgumentCaptor.capture());
         RecordBO recordBO = recordBOArgumentCaptor.getValue();
         assertEquals(rawMessageId, recordBO.getRawMessageId());
         assertEquals(appId, recordBO.getAppId());
         assertEquals(entryId, recordBO.getEntryId());
         assertNull(recordBO.getDataId());
         assertEquals(exceptionMessage, recordBO.getErrorMessage());
-        assertEquals(Integer.valueOf(Integer.MAX_VALUE), recordBO.getUpdateCount());
         verify(errorHandlingService, times(1)).handleParsingFailed(eq(parsingException), eq(message));
         verify(smsRequestService, times(0)).processSmsRequest(anyString(), any(RecordBO.class), any(SmsTemplate.class));
     }
