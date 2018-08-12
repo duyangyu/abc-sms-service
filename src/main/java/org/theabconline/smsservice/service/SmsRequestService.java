@@ -2,6 +2,8 @@ package org.theabconline.smsservice.service;
 
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class SmsRequestService {
@@ -42,6 +45,8 @@ public class SmsRequestService {
 
     private final AliyunSMSAdapter aliyunSMSAdapter;
 
+    private final ObjectMapper objectMapper;
+
     @Autowired
     public SmsRequestService(SmsRequestRepository smsRequestRepository,
                              SmsMessageRepository smsMessageRepository,
@@ -50,7 +55,8 @@ public class SmsRequestService {
                              JdyService jdyService,
                              JdyRecordFields jdyRecordFields,
                              ErrorHandlingService errorHandlingService,
-                             AliyunSMSAdapter aliyunSMSAdapter) {
+                             AliyunSMSAdapter aliyunSMSAdapter,
+                             ObjectMapper objectMapper) {
         this.smsRequestRepository = smsRequestRepository;
         this.smsMessageRepository = smsMessageRepository;
         this.parsingService = parsingService;
@@ -59,6 +65,7 @@ public class SmsRequestService {
         this.jdyRecordFields = jdyRecordFields;
         this.errorHandlingService = errorHandlingService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
+        this.objectMapper = objectMapper;
     }
 
     void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
@@ -113,7 +120,11 @@ public class SmsRequestService {
             if (smsRequestBO.getUpdateCount() == 0) {
                 String dataId = createNewRecord(smsRequestBO);
                 smsRequestBO.setDataId(dataId);
-                smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                if (dataId == null) {
+                    smsRequestBO.setUpdateCount(Integer.MAX_VALUE);
+                } else {
+                    smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                }
                 smsRequestBO.setUpdatedOn(new Date());
             } else {
                 updateRecord(smsRequestBO);
@@ -142,7 +153,7 @@ public class SmsRequestService {
         data.put(jdyRecordFields.getPhoneNumbersWidget(), getValueMap(phoneNumbers));
         data.put(jdyRecordFields.getContentWidget(), getValueMap(content));
         data.put(jdyRecordFields.getNumbersAmountWidget(), getValueMap(totalAmount));
-        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus));
+        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus.toString()));
         data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
         data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
         data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
@@ -155,7 +166,7 @@ public class SmsRequestService {
         try {
             dataId = parsingService.getFieldValue(response, "_id");
         } catch (IOException e) {
-            e.printStackTrace();
+            errorHandlingService.handleJdyFailure(getErrorMessage(response, data));
         }
 
         return dataId;
@@ -172,7 +183,7 @@ public class SmsRequestService {
         JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
         jdyRecordDTO.setData_id(dataId);
         Map<String, Map<String, Object>> data = Maps.newHashMap();
-        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus));
+        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus.toString()));
         data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
         data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
         data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
@@ -195,10 +206,27 @@ public class SmsRequestService {
     private String getErrorMessage(SmsRequestBO smsRequestBO) {
         StringBuilder sb = new StringBuilder();
         List<SmsMessageBO> failedMessages = smsMessageRepository.getAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.FALSE);
-        sb.append(smsRequestBO.getErrorMessage()).append(",");
-        for (SmsMessageBO failedMessage : failedMessages) {
-            sb.append(failedMessage.getPhoneNumber()).append(":").append(failedMessage.getErrorMessage()).append(",");
+        if (smsRequestBO.getErrorMessage() != null) {
+            sb.append(smsRequestBO.getErrorMessage()).append(",");
         }
+        for (SmsMessageBO failedMessage : failedMessages) {
+            sb.append(failedMessage.getPhoneNumber()).append(":").append(Objects.toString(failedMessage.getErrorMessage(), "")).append(",");
+        }
+
+        return sb.toString();
+    }
+
+    private String getErrorMessage(String response, Map<String, Map<String, Object>> data) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Response: ").append(response).append("\n");
+        String dataString = null;
+        try {
+            dataString = objectMapper.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+        sb.append("Payload: ").append(Objects.toString(dataString, ""));
 
         return sb.toString();
     }

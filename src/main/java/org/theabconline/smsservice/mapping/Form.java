@@ -8,14 +8,6 @@ public class Form {
     private String name;
     private String appId;
     private String entryId;
-    private String metadataWidget;
-    private String messageSentWidget;
-    private String errorMessageWidget;
-
-    /* Custom code */
-    public String getFormId() {
-        return this.appId + this.entryId;
-    }
 
     /* Generated code */
     public String getName() {
@@ -42,27 +34,4 @@ public class Form {
         this.entryId = entryId;
     }
 
-    public String getMetadataWidget() {
-        return metadataWidget;
-    }
-
-    public void setMetadataWidget(String metadataWidget) {
-        this.metadataWidget = metadataWidget;
-    }
-
-    public String getMessageSentWidget() {
-        return messageSentWidget;
-    }
-
-    public void setMessageSentWidget(String messageSentWidget) {
-        this.messageSentWidget = messageSentWidget;
-    }
-
-    public String getErrorMessageWidget() {
-        return errorMessageWidget;
-    }
-
-    public void setErrorMessageWidget(String errorMessageWidget) {
-        this.errorMessageWidget = errorMessageWidget;
-    }
 }

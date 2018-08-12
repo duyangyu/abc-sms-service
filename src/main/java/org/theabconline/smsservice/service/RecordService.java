@@ -13,9 +13,7 @@ import org.theabconline.smsservice.mapping.SmsTemplate;
 import org.theabconline.smsservice.repository.RawMessageRepository;
 import org.theabconline.smsservice.repository.RecordRepository;
 
-import java.util.Date;
 import java.util.List;
-import java.util.Objects;
 
 @Service
 public class RecordService {
@@ -32,10 +30,6 @@ public class RecordService {
 
     private final SmsRequestService smsRequestService;
 
-    private final SmsMessageService smsMessageService;
-
-    private final JdyService jdyService;
-
     private final ErrorHandlingService errorHandlingService;
 
     @Value("${checkBlocking.threshold:10}")
@@ -47,16 +41,12 @@ public class RecordService {
                          ValidationService validationService,
                          ParsingService parsingService,
                          SmsRequestService smsRequestService,
-                         SmsMessageService smsMessageService,
-                         JdyService jdyService,
                          ErrorHandlingService errorHandlingService) {
         this.rawMessageRepository = rawMessageRepository;
         this.recordRepository = recordRepository;
         this.validationService = validationService;
         this.parsingService = parsingService;
         this.smsRequestService = smsRequestService;
-        this.smsMessageService = smsMessageService;
-        this.jdyService = jdyService;
         this.errorHandlingService = errorHandlingService;
     }
 

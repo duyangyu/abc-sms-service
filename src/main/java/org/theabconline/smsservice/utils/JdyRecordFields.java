@@ -13,7 +13,7 @@ public class JdyRecordFields {
     private String sentOnWidget;
     @Value("${jdyun.report.phoneNumbers.widget}")
     private String phoneNumbersWidget;
-    @Value("${jdyun.report.type.widget}")
+    @Value("${jdyun.report.content.widget}")
     private String contentWidget;
     @Value("${jdyun.report.numbersAmount.widget}")
     private String numbersAmountWidget;

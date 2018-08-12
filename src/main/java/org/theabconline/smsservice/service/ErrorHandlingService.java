@@ -1,10 +1,8 @@
 package org.theabconline.smsservice.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.theabconline.smsservice.entity.RecordBO;
 
 @Service
 public class ErrorHandlingService {
@@ -38,7 +36,7 @@ public class ErrorHandlingService {
         emailService.send(title, content);
     }
 
-    public void handleJdyFailure(String errorMessage) {
+    void handleJdyFailure(String errorMessage) {
         String title = "SMS-Service - Updating JDY record failed";
         emailService.send(title, errorMessage);
     }

@@ -86,7 +86,7 @@ public class ParsingServiceTest {
         assertEquals("_widget_1523334349599", smsTemplate.getPhoneNumbersWidget());
         assertEquals(3, smsTemplate.getFieldMappings().size());
         Map<String, String> widgetFieldMap = Maps.newHashMap();
-        for(FieldMapping fieldMapping : smsTemplate.getFieldMappings()) {
+        for (FieldMapping fieldMapping : smsTemplate.getFieldMappings()) {
             widgetFieldMap.put(fieldMapping.getWidget(), fieldMapping.getSmsField());
         }
         assertEquals("name", widgetFieldMap.get("_widget_1531701681875"));
@@ -120,7 +120,7 @@ public class ParsingServiceTest {
     public void testGetMessageWidget() {
         String messageWidget = fixture.getMessageWidget(APP_ID, ENTRY_ID);
 
-        assertEquals(MESSAGE_WIDGET,messageWidget);
+        assertEquals(MESSAGE_WIDGET, messageWidget);
     }
 
     @Test

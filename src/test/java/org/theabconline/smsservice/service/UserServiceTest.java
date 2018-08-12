@@ -18,7 +18,6 @@ import org.theabconline.smsservice.dto.AccessTokenDTO;
 import org.theabconline.smsservice.dto.UserRegistrationDTO;
 import org.theabconline.smsservice.dto.UserRegistrationResponseDTO;
 
-import java.io.IOException;
 import java.util.Queue;
 
 import static org.junit.Assert.*;

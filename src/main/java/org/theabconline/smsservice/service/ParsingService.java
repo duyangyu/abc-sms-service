@@ -22,22 +22,16 @@ import java.util.Map;
 public class ParsingService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParsingService.class);
-
+    private final ObjectMapper mapper;
+    private final FormRepository formRepository;
     @Value("${jdyun.defaultPath:/data}")
     private String defaultPath;
-
     @Value("${jdyun.appIdFieldName:appId}")
     private String appIdWidget;
-
     @Value("${jdyun.entryIdFieldName:entryId}")
     private String entryIdWidget;
-
     @Value("${jdyun.dataIdFieldName:_id}")
     private String dataIdWidget;
-
-    private final ObjectMapper mapper;
-
-    private final FormRepository formRepository;
 
     @Autowired
     public ParsingService(ObjectMapper mapper,

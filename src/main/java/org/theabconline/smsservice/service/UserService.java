@@ -26,14 +26,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @EnableScheduling
 public class UserService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
-
     static final String CORP_ID_KEY = "corpid";
     static final String CORP_SECRET_KEY = "corpsecret";
     static final String ACCESS_TOKEN_KEY = "access_token";
     static final String CREATED_MESSAGE = "created";
     static final String ACCESS_TOKEN_OK_MESSAGE = "ok";
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
     private final ParsingService parsingService;
     private final EmailService emailService;
     private final ValidationService validationService;
