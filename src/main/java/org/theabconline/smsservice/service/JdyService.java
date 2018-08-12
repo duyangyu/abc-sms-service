@@ -23,30 +23,55 @@ public class JdyService {
     @Value("${jdyun.api.secret}")
     private String apiSecret;
 
+    @Value("${jdyun.report.table.appId}")
+    private String reportFormAppId;
+
+    @Value("${jdyun.report.table.entryId}")
+    private String reportFormEntryId;
+
     private RestTemplate restTemplate;
 
     private ParsingService parsingService;
 
+    private ErrorHandlingService errorHandlingService;
+
     @Autowired
     public JdyService(RestTemplate restTemplate,
-                      ParsingService parsingService) {
+                      ParsingService parsingService,
+                      ErrorHandlingService errorHandlingService) {
         this.restTemplate = restTemplate;
         this.parsingService = parsingService;
+        this.errorHandlingService = errorHandlingService;
     }
 
-    String updateRecordMessage(RecordBO recordBO, String message) {
-        String requestUrl = buildRequestUrl(recordBO.getAppId(), recordBO.getEntryId());
-        JdyRecordDTO jdyRecordDTO = getPayload(recordBO, message);
-        HttpHeaders headers = getHttpHeaders();
-        HttpEntity<?> httpEntity = new HttpEntity<Object>(jdyRecordDTO, headers);
+    String createReportRecord(JdyRecordDTO payload) {
+        return makeRequest(payload, getInsertRequestUrl());
+    }
 
-        ResponseEntity<String> response = restTemplate.exchange(requestUrl, HttpMethod.POST, httpEntity, String.class);
+    String updateRecordMessage(JdyRecordDTO payload) {
+        return makeRequest(payload, getUpdateRequestUrl());
+    }
+
+    String makeRequest(JdyRecordDTO payload, String url) {
+        HttpHeaders headers = getHttpHeaders();
+        HttpEntity<?> httpEntity = new HttpEntity<Object>(payload, headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            errorHandlingService.handleJdyFailure(response.getBody());
+            return null;
+        }
 
         return response.getBody();
     }
 
-    String buildRequestUrl(String appId, String entryId) {
-        return apiUrl + String.format("app/%s/entry/%s/data_update", appId, entryId);
+    String getUpdateRequestUrl() {
+        return apiUrl + String.format("app/%s/entry/%s/data_update", reportFormAppId, reportFormEntryId);
+    }
+
+    String getInsertRequestUrl() {
+        return apiUrl + String.format("app/%s/entry/%s/data_create", reportFormAppId, reportFormEntryId);
     }
 
     HttpHeaders getHttpHeaders() {
@@ -56,16 +81,16 @@ public class JdyService {
         return headers;
     }
 
-    JdyRecordDTO getPayload(RecordBO recordBO, String message) {
-        JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
-        jdyRecordDTO.setData_id(recordBO.getDataId());
-        Map<String, Map<String, String>> data = Maps.newHashMap();
-        Map<String, String> fieldValue = Maps.newHashMap();
-        fieldValue.put("value", message);
-        String messageWidgetName = parsingService.getMessageWidget(recordBO.getAppId(), recordBO.getEntryId());
-        data.put(messageWidgetName, fieldValue);
-        jdyRecordDTO.setData(data);
-        return jdyRecordDTO;
-    }
+//    JdyRecordDTO getPayload(RecordBO recordBO, String message) {
+//        JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
+//        jdyRecordDTO.setData_id(recordBO.getDataId());
+//        Map<String, Map<String, String>> data = Maps.newHashMap();
+//        Map<String, String> fieldValue = Maps.newHashMap();
+//        fieldValue.put("value", message);
+//        String messageWidgetName = parsingService.getMessageWidget(recordBO.getAppId(), recordBO.getEntryId());
+//        data.put(messageWidgetName, fieldValue);
+//        jdyRecordDTO.setData(data);
+//        return jdyRecordDTO;
+//    }
 
 }

@@ -36,6 +36,19 @@ public class SmsRequestBO {
     @Column(name = "record_id")
     private Long recordId;
 
+    @Column(name = "content")
+    private String content;
+
+    @Column(name = "update_count")
+    private Integer updateCount;
+
+    @Column(name = "updated_on", columnDefinition = "DATETIME")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date updatedOn;
+
+    @Column(name = "data_id")
+    private String dataId;
+
     public SmsRequestBO() {
     }
 
@@ -114,5 +127,41 @@ public class SmsRequestBO {
 
     public void setRecordId(Long recordId) {
         this.recordId = recordId;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public SmsRequestBO setContent(String content) {
+        this.content = content;
+        return this;
+    }
+
+    public Integer getUpdateCount() {
+        return updateCount;
+    }
+
+    public SmsRequestBO setUpdateCount(Integer updateCount) {
+        this.updateCount = updateCount;
+        return this;
+    }
+
+    public Date getUpdatedOn() {
+        return updatedOn;
+    }
+
+    public SmsRequestBO setUpdatedOn(Date updatedOn) {
+        this.updatedOn = updatedOn;
+        return this;
+    }
+
+    public String getDataId() {
+        return dataId;
+    }
+
+    public SmsRequestBO setDataId(String dataId) {
+        this.dataId = dataId;
+        return this;
     }
 }

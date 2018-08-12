@@ -5,7 +5,7 @@ import java.util.Map;
 public class JdyRecordDTO {
 
     private String data_id;
-    private Map<String, Map<String, String>> data;
+    private Map<String, Map<String, Object>> data;
 
     public JdyRecordDTO() {
     }
@@ -18,11 +18,11 @@ public class JdyRecordDTO {
         this.data_id = data_id;
     }
 
-    public Map<String, Map<String, String>> getData() {
+    public Map<String, Map<String, Object>> getData() {
         return data;
     }
 
-    public void setData(Map<String, Map<String, String>> data) {
+    public void setData(Map<String, Map<String, Object>> data) {
         this.data = data;
     }
 }

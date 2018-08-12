@@ -6,6 +6,7 @@ public class SmsTemplate {
 
     private String smsTemplateCode;
     private String phoneNumbersWidget;
+    private String contentWidget;
     private List<FieldMapping> fieldMappings;
 
     public String getSmsTemplateCode() {
@@ -22,6 +23,15 @@ public class SmsTemplate {
 
     public void setPhoneNumbersWidget(String phoneNumbersWidget) {
         this.phoneNumbersWidget = phoneNumbersWidget;
+    }
+
+    public String getContentWidget() {
+        return contentWidget;
+    }
+
+    public SmsTemplate setContentWidget(String contentWidget) {
+        this.contentWidget = contentWidget;
+        return this;
     }
 
     public List<FieldMapping> getFieldMappings() {

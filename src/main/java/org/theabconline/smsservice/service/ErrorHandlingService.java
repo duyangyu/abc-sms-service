@@ -38,14 +38,8 @@ public class ErrorHandlingService {
         emailService.send(title, content);
     }
 
-    public void handleUpdatingRecordFailure(RecordBO recordBO, String errorMessage) {
+    public void handleJdyFailure(String errorMessage) {
         String title = "SMS-Service - Updating JDY record failed";
-        String content = errorMessage;
-        try {
-            content = String.format("Record: %s\nError message:%s", objectMapper.writeValueAsString(recordBO), errorMessage);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        emailService.send(title, content);
+        emailService.send(title, errorMessage);
     }
 }

@@ -11,5 +11,9 @@ public interface SmsMessageRepository extends PagingAndSortingRepository<SmsMess
 
     List<SmsMessageBO> getAllByRecordIdAndIsSent(Long recordId, Boolean isSent);
 
+    Integer countAllBySmsRequestIdAndIsSent(Long smsRequestId, Boolean isSent);
+
+    List<SmsMessageBO> getAllBySmsRequestIdAndIsSent(Long smsRequestId, Boolean isSent);
+
     List<SmsMessageBO> getAllByBizIdAndPhoneNumber(String bizId, String phoneNumber);
 }

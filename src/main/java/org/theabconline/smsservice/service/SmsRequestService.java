@@ -2,27 +2,41 @@ package org.theabconline.smsservice.service;
 
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.theabconline.smsservice.dto.JdyRecordDTO;
 import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.entity.RecordBO;
+import org.theabconline.smsservice.entity.SmsMessageBO;
 import org.theabconline.smsservice.entity.SmsRequestBO;
 import org.theabconline.smsservice.mapping.SmsTemplate;
+import org.theabconline.smsservice.repository.SmsMessageRepository;
 import org.theabconline.smsservice.repository.SmsRequestRepository;
+import org.theabconline.smsservice.utils.JdyRecordFields;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
 @Service
 public class SmsRequestService {
 
     private final SmsRequestRepository smsRequestRepository;
 
+    private final SmsMessageRepository smsMessageRepository;
+
     private final ParsingService parsingService;
 
     private final SmsMessageService smsMessageService;
+
+    private final JdyService jdyService;
+
+    private final JdyRecordFields jdyRecordFields;
 
     private final ErrorHandlingService errorHandlingService;
 
@@ -30,21 +44,28 @@ public class SmsRequestService {
 
     @Autowired
     public SmsRequestService(SmsRequestRepository smsRequestRepository,
+                             SmsMessageRepository smsMessageRepository,
                              ParsingService parsingService,
                              SmsMessageService smsMessageService,
+                             JdyService jdyService,
+                             JdyRecordFields jdyRecordFields,
                              ErrorHandlingService errorHandlingService,
                              AliyunSMSAdapter aliyunSMSAdapter) {
         this.smsRequestRepository = smsRequestRepository;
+        this.smsMessageRepository = smsMessageRepository;
         this.parsingService = parsingService;
         this.smsMessageService = smsMessageService;
+        this.jdyService = jdyService;
+        this.jdyRecordFields = jdyRecordFields;
         this.errorHandlingService = errorHandlingService;
         this.aliyunSMSAdapter = aliyunSMSAdapter;
     }
 
-    public void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
+    void processSmsRequest(String rawMessage, RecordBO recordBO, SmsTemplate smsTemplate) {
         String phoneNumbers = null;
         String templateCode = null;
         String payload = null;
+        String content = null;
         IOException parsingException = null;
         try {
             phoneNumbers = parsingService.getPhoneNumbers(rawMessage, smsTemplate.getPhoneNumbersWidget());
@@ -53,13 +74,15 @@ public class SmsRequestService {
             }
             templateCode = smsTemplate.getSmsTemplateCode();
             payload = parsingService.getPayload(rawMessage, smsTemplate.getFieldMappings());
+            content = parsingService.getFieldValue(rawMessage, smsTemplate.getContentWidget());
         } catch (IOException e) {
             parsingException = e;
         }
 
-        SmsRequestBO smsRequestBO = createSmsRequestBO(recordBO.getId(), phoneNumbers, templateCode, payload, parsingException);
+        SmsRequestBO smsRequestBO = createSmsRequestBO(recordBO.getId(), phoneNumbers, templateCode, payload, parsingException, content);
 
         if (parsingException != null) {
+            smsRequestBO.setUpdateCount(Integer.MAX_VALUE);
             smsRequestRepository.save(smsRequestBO);
             errorHandlingService.handleParsingFailed(parsingException, rawMessage);
             return;
@@ -84,17 +107,111 @@ public class SmsRequestService {
         smsMessageService.saveSmsMessages(smsRequestBO);
     }
 
-    public String getErrorMessage(RecordBO recordBO) {
-        List<SmsRequestBO> smsRequestBOList = smsRequestRepository.getAllByRecordId(recordBO.getId());
+    void updateRequestStatus(Integer maxCount, Long lastUpdatedInMillis) {
+        List<SmsRequestBO> smsRequests = smsRequestRepository.findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(maxCount, new Date(System.currentTimeMillis() - lastUpdatedInMillis));
+        for (SmsRequestBO smsRequestBO : smsRequests) {
+            if (smsRequestBO.getUpdateCount() == 0) {
+                String dataId = createNewRecord(smsRequestBO);
+                smsRequestBO.setDataId(dataId);
+                smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                smsRequestBO.setUpdatedOn(new Date());
+            } else {
+                updateRecord(smsRequestBO);
+                smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                smsRequestBO.setUpdatedOn(new Date());
+            }
+            smsRequestRepository.save(smsRequestBO);
+        }
+    }
+
+    private String createNewRecord(SmsRequestBO smsRequestBO) {
+        String templateId = smsRequestBO.getTemplateCode();
+        Date sentOn = smsRequestBO.getCreatedOn();
+        String phoneNumbers = smsRequestBO.getPhoneNumbers();
+        String content = smsRequestBO.getContent();
+        Integer totalAmount = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(",")).size();
+        Integer successAmount = smsMessageRepository.countAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
+        Boolean sendStatus = totalAmount.equals(successAmount);
+        List<String> failPhoneNumbers = getFailedPhoneNumbers(smsRequestBO);
+        String errorMessage = getErrorMessage(smsRequestBO);
+
+        JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
+        Map<String, Map<String, Object>> data = Maps.newHashMap();
+        data.put(jdyRecordFields.getTemplateIdWidget(), getValueMap(templateId));
+        data.put(jdyRecordFields.getSentOnWidget(), getValueMap(sentOn));
+        data.put(jdyRecordFields.getPhoneNumbersWidget(), getValueMap(phoneNumbers));
+        data.put(jdyRecordFields.getContentWidget(), getValueMap(content));
+        data.put(jdyRecordFields.getNumbersAmountWidget(), getValueMap(totalAmount));
+        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus));
+        data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
+        data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
+        data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
+        data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(errorMessage));
+        jdyRecordDTO.setData(data);
+
+        String response = jdyService.createReportRecord(jdyRecordDTO);
+        String dataId = null;
+
+        try {
+            dataId = parsingService.getFieldValue(response, "_id");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return dataId;
+    }
+
+    private void updateRecord(SmsRequestBO smsRequestBO) {
+        Integer totalAmount = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(",")).size();
+        String dataId = smsRequestBO.getDataId();
+        Integer successAmount = smsMessageRepository.countAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
+        Boolean sendStatus = totalAmount.equals(successAmount);
+        List<String> failPhoneNumbers = getFailedPhoneNumbers(smsRequestBO);
+        String errorMessage = getErrorMessage(smsRequestBO);
+
+        JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
+        jdyRecordDTO.setData_id(dataId);
+        Map<String, Map<String, Object>> data = Maps.newHashMap();
+        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus));
+        data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
+        data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
+        data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
+        data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(errorMessage));
+        jdyRecordDTO.setData(data);
+
+        jdyService.updateRecordMessage(jdyRecordDTO);
+    }
+
+    private List<String> getFailedPhoneNumbers(SmsRequestBO smsRequestBO) {
+        List<String> failPhoneNumbers = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(","));
+        List<SmsMessageBO> successMessages = smsMessageRepository.getAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
+        for (SmsMessageBO smsMessageBO : successMessages) {
+            failPhoneNumbers.remove(smsMessageBO.getPhoneNumber());
+        }
+
+        return failPhoneNumbers;
+    }
+
+    private String getErrorMessage(SmsRequestBO smsRequestBO) {
         StringBuilder sb = new StringBuilder();
-        for (SmsRequestBO smsRequestBO : smsRequestBOList) {
-            sb.append(Objects.toString(smsRequestBO.getErrorMessage(), ""));
+        List<SmsMessageBO> failedMessages = smsMessageRepository.getAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.FALSE);
+        sb.append(smsRequestBO.getErrorMessage()).append(",");
+        for (SmsMessageBO failedMessage : failedMessages) {
+            sb.append(failedMessage.getPhoneNumber()).append(":").append(failedMessage.getErrorMessage()).append(",");
         }
 
         return sb.toString();
     }
 
-    private SmsRequestBO createSmsRequestBO(Long recordId, String phoneNumbers, String templateCode, String payload, IOException parsingException) {
+    private Map<String, Object> getValueMap(Object value) {
+        Map<String, Object> valueMap = Maps.newHashMap();
+        valueMap.put(JdyRecordFields.KEY, value);
+
+        return valueMap;
+    }
+
+    private SmsRequestBO createSmsRequestBO(Long recordId, String phoneNumbers, String templateCode, String payload,
+                                            IOException parsingException, String content) {
         SmsRequestBO smsRequestBO = new SmsRequestBO();
         smsRequestBO.setTemplateCode(templateCode);
         smsRequestBO.setPhoneNumbers(phoneNumbers);
@@ -102,6 +219,9 @@ public class SmsRequestService {
         smsRequestBO.setSent(false);
         smsRequestBO.setErrorMessage(parsingException == null ? null : parsingException.getMessage());
         smsRequestBO.setRecordId(recordId);
+        smsRequestBO.setContent(content);
+        smsRequestBO.setUpdateCount(0);
+        smsRequestBO.setUpdatedOn(new Date());
 
         return smsRequestBO;
     }
