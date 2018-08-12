@@ -127,8 +127,12 @@ public class SmsRequestService {
                 }
                 smsRequestBO.setUpdatedOn(new Date());
             } else {
-                updateRecord(smsRequestBO);
-                smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                String response = updateRecord(smsRequestBO);
+                if (response == null) {
+                    smsRequestBO.setUpdateCount(Integer.MAX_VALUE);
+                } else {
+                    smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+                }
                 smsRequestBO.setUpdatedOn(new Date());
             }
             smsRequestRepository.save(smsRequestBO);
@@ -172,7 +176,7 @@ public class SmsRequestService {
         return dataId;
     }
 
-    private void updateRecord(SmsRequestBO smsRequestBO) {
+    private String updateRecord(SmsRequestBO smsRequestBO) {
         Integer totalAmount = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(",")).size();
         String dataId = smsRequestBO.getDataId();
         Integer successAmount = smsMessageRepository.countAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
@@ -190,7 +194,12 @@ public class SmsRequestService {
         data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(errorMessage));
         jdyRecordDTO.setData(data);
 
-        jdyService.updateRecordMessage(jdyRecordDTO);
+        String response = jdyService.updateRecordMessage(jdyRecordDTO);
+        if (response == null) {
+            errorHandlingService.handleJdyFailure(getErrorMessage("Possible cause: report data deleted", data));
+        }
+
+        return response;
     }
 
     private List<String> getFailedPhoneNumbers(SmsRequestBO smsRequestBO) {
