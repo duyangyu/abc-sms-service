@@ -27,16 +27,12 @@ public class JdyService {
 
     private RestTemplate restTemplate;
 
-    private ParsingService parsingService;
-
     private ErrorHandlingService errorHandlingService;
 
     @Autowired
     public JdyService(RestTemplate restTemplate,
-                      ParsingService parsingService,
                       ErrorHandlingService errorHandlingService) {
         this.restTemplate = restTemplate;
-        this.parsingService = parsingService;
         this.errorHandlingService = errorHandlingService;
     }
 
@@ -51,7 +47,7 @@ public class JdyService {
     String makeRequest(JdyRecordDTO payload, String url) {
         HttpHeaders headers = getHttpHeaders();
         HttpEntity<?> httpEntity = new HttpEntity<Object>(payload, headers);
-
+        
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
 
         if (!response.getStatusCode().is2xxSuccessful()) {
