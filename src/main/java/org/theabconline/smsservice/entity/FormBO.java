@@ -22,9 +22,6 @@ public class FormBO {
     @Column(name = "metadata_widget")
     private String metadataWidget;
 
-    @Column(name = "message_widget")
-    private String messageWidget;
-
     public FormBO() {
     }
 
@@ -60,11 +57,4 @@ public class FormBO {
         this.metadataWidget = metadataWidget;
     }
 
-    public String getMessageWidget() {
-        return messageWidget;
-    }
-
-    public void setMessageWidget(String messageWidget) {
-        this.messageWidget = messageWidget;
-    }
 }

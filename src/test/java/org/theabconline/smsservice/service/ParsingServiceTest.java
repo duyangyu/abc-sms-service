@@ -51,7 +51,6 @@ public class ParsingServiceTest {
         formBO.setAppId(APP_ID);
         formBO.setEntryId(ENTRY_ID);
         formBO.setMetadataWidget(METADATA_WIDGET);
-        formBO.setMessageWidget(MESSAGE_WIDGET);
         when(formRepository.findAllByAppIdAndEntryId(eq(APP_ID), eq(ENTRY_ID))).thenReturn(Lists.newArrayList(formBO));
     }
 
@@ -114,13 +113,6 @@ public class ParsingServiceTest {
         assertEquals("2018秋季咨询季", payloadMap.get("season"));
         assertEquals("2018年8月31日", payloadMap.get("time"));
 
-    }
-
-    @Test
-    public void testGetMessageWidget() {
-        String messageWidget = fixture.getMessageWidget(APP_ID, ENTRY_ID);
-
-        assertEquals(MESSAGE_WIDGET, messageWidget);
     }
 
     @Test

@@ -82,11 +82,6 @@ public class ParsingService {
         return mapper.writeValueAsString(payloadMap);
     }
 
-    String getMessageWidget(String appId, String entryId) {
-        FormBO formBO = getFormBO(appId, entryId);
-        return formBO.getMessageWidget();
-    }
-
     String getFieldValue(String message, String fieldName) throws IOException {
         return getFieldValue(message, defaultPath, fieldName);
     }
