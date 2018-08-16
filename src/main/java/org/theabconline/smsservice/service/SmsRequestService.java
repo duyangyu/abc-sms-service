@@ -21,6 +21,7 @@ import org.theabconline.smsservice.repository.SmsRequestRepository;
 import org.theabconline.smsservice.utils.JdyRecordFields;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import java.util.Objects;
 
 @Service
 public class SmsRequestService {
+
+    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private final SmsRequestRepository smsRequestRepository;
 
@@ -112,29 +115,19 @@ public class SmsRequestService {
 
         smsRequestRepository.save(smsRequestBO);
         smsMessageService.saveSmsMessages(smsRequestBO);
+
+        String dataId = createNewRecord(smsRequestBO);
+        smsRequestBO.setDataId(dataId);
+        smsRequestBO.setUpdateCount(dataId == null ? Integer.MAX_VALUE : 0);
+        smsRequestBO.setUpdatedOn(new Date());
     }
 
     void updateRequestStatus(Integer maxCount, Long lastUpdatedInMillis) {
         List<SmsRequestBO> smsRequests = smsRequestRepository.findAllByUpdateCountLessThanEqualAndUpdatedOnBefore(maxCount, new Date(System.currentTimeMillis() - lastUpdatedInMillis));
         for (SmsRequestBO smsRequestBO : smsRequests) {
-            if (smsRequestBO.getUpdateCount() == 0) {
-                String dataId = createNewRecord(smsRequestBO);
-                smsRequestBO.setDataId(dataId);
-                if (dataId == null) {
-                    smsRequestBO.setUpdateCount(Integer.MAX_VALUE);
-                } else {
-                    smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
-                }
-                smsRequestBO.setUpdatedOn(new Date());
-            } else {
-                String response = updateRecord(smsRequestBO);
-                if (response == null) {
-                    smsRequestBO.setUpdateCount(Integer.MAX_VALUE);
-                } else {
-                    smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
-                }
-                smsRequestBO.setUpdatedOn(new Date());
-            }
+            updateRecord(smsRequestBO);
+            smsRequestBO.setUpdateCount(smsRequestBO.getUpdateCount() + 1);
+            smsRequestBO.setUpdatedOn(new Date());
             smsRequestRepository.save(smsRequestBO);
         }
     }
@@ -145,23 +138,16 @@ public class SmsRequestService {
         String phoneNumbers = smsRequestBO.getPhoneNumbers();
         String content = smsRequestBO.getContent();
         Integer totalAmount = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(",")).size();
-        Integer successAmount = smsMessageRepository.countAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
-        Boolean sendStatus = totalAmount.equals(successAmount);
-        List<String> failPhoneNumbers = getFailedPhoneNumbers(smsRequestBO);
-        String errorMessage = getErrorMessage(smsRequestBO);
 
         JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
         Map<String, Map<String, Object>> data = Maps.newHashMap();
         data.put(jdyRecordFields.getTemplateIdWidget(), getValueMap(templateId));
-        data.put(jdyRecordFields.getSentOnWidget(), getValueMap(sentOn));
+        data.put(jdyRecordFields.getSentOnWidget(), getValueMap(DATE_FORMAT.format(sentOn)));
         data.put(jdyRecordFields.getPhoneNumbersWidget(), getValueMap(phoneNumbers));
         data.put(jdyRecordFields.getContentWidget(), getValueMap(content));
         data.put(jdyRecordFields.getNumbersAmountWidget(), getValueMap(totalAmount));
-        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus.toString()));
-        data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
-        data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
-        data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
-        data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(errorMessage));
+        data.put(jdyRecordFields.getStatusWidget(), getValueMap(smsRequestBO.getSent() ? "Sent" : "NOT Sent"));
+        data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(smsRequestBO.getErrorMessage()));
         jdyRecordDTO.setData(data);
 
         String response = jdyService.createReportRecord(jdyRecordDTO);
@@ -177,20 +163,17 @@ public class SmsRequestService {
     }
 
     private String updateRecord(SmsRequestBO smsRequestBO) {
-        Integer totalAmount = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(",")).size();
         String dataId = smsRequestBO.getDataId();
         Integer successAmount = smsMessageRepository.countAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
-        Boolean sendStatus = totalAmount.equals(successAmount);
-        List<String> failPhoneNumbers = getFailedPhoneNumbers(smsRequestBO);
+        List<String> failedPhoneNumbers = getFailedPhoneNumbers(smsRequestBO);
         String errorMessage = getErrorMessage(smsRequestBO);
 
         JdyRecordDTO jdyRecordDTO = new JdyRecordDTO();
         jdyRecordDTO.setData_id(dataId);
         Map<String, Map<String, Object>> data = Maps.newHashMap();
-        data.put(jdyRecordFields.getStatusWidget(), getValueMap(sendStatus.toString()));
         data.put(jdyRecordFields.getSuccessAmountWidget(), getValueMap(successAmount));
-        data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failPhoneNumbers.size()));
-        data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failPhoneNumbers)));
+        data.put(jdyRecordFields.getFailAmountWidget(), getValueMap(failedPhoneNumbers.size()));
+        data.put(jdyRecordFields.getFailPhoneNumbersWidget(), getValueMap(Joiner.on(",").join(failedPhoneNumbers)));
         data.put(jdyRecordFields.getErrorMessageWidget(), getValueMap(errorMessage));
         jdyRecordDTO.setData(data);
 
@@ -203,13 +186,13 @@ public class SmsRequestService {
     }
 
     private List<String> getFailedPhoneNumbers(SmsRequestBO smsRequestBO) {
-        List<String> failPhoneNumbers = Lists.newArrayList(smsRequestBO.getPhoneNumbers().split(","));
-        List<SmsMessageBO> successMessages = smsMessageRepository.getAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.TRUE);
-        for (SmsMessageBO smsMessageBO : successMessages) {
-            failPhoneNumbers.remove(smsMessageBO.getPhoneNumber());
+        List<String> failedPhoneNumbers = Lists.newArrayList();
+        List<SmsMessageBO> failedMessages = smsMessageRepository.getAllBySmsRequestIdAndIsSent(smsRequestBO.getId(), Boolean.FALSE);
+        for (SmsMessageBO smsMessageBO : failedMessages) {
+            failedPhoneNumbers.add(smsMessageBO.getPhoneNumber());
         }
 
-        return failPhoneNumbers;
+        return failedPhoneNumbers;
     }
 
     private String getErrorMessage(SmsRequestBO smsRequestBO) {
