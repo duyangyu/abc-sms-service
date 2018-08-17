@@ -242,6 +242,7 @@ public class SmsRequestService {
         smsRequestBO.setContent(content);
         smsRequestBO.setUpdateCount(0);
         smsRequestBO.setUpdatedOn(new Date());
+        smsRequestBO.setCreatedOn(new Date());
 
         return smsRequestBO;
     }

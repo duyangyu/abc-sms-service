@@ -3,18 +3,21 @@ package org.theabconline.smsservice.service;
 import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
 import com.aliyuncs.exceptions.ClientException;
 import com.google.common.collect.Lists;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.theabconline.smsservice.dto.JdyRecordDTO;
 import org.theabconline.smsservice.dto.SmsRequestDTO;
 import org.theabconline.smsservice.entity.RecordBO;
 import org.theabconline.smsservice.entity.SmsRequestBO;
 import org.theabconline.smsservice.mapping.FieldMapping;
 import org.theabconline.smsservice.mapping.SmsTemplate;
 import org.theabconline.smsservice.repository.SmsRequestRepository;
+import org.theabconline.smsservice.utils.JdyRecordFields;
 
 import java.io.IOException;
 import java.util.List;
@@ -47,6 +50,28 @@ public class SmsRequestServiceTest {
     @Mock
     private AliyunSMSAdapter aliyunSMSAdapter;
 
+    @Mock
+    private JdyRecordFields jdyRecordFields;
+
+    @Mock
+    private JdyService jdyService;
+
+    @Before
+    public void setup() {
+        when(jdyRecordFields.getTemplateIdWidget()).thenReturn("1");
+        when(jdyRecordFields.getSentOnWidget()).thenReturn("1");
+        when(jdyRecordFields.getPhoneNumbersWidget()).thenReturn("1");
+        when(jdyRecordFields.getContentWidget()).thenReturn("1");
+        when(jdyRecordFields.getNumbersAmountWidget()).thenReturn("1");
+        when(jdyRecordFields.getStatusWidget()).thenReturn("1");
+        when(jdyRecordFields.getSuccessAmountWidget()).thenReturn("1");
+        when(jdyRecordFields.getFailAmountWidget()).thenReturn("1");
+        when(jdyRecordFields.getFailPhoneNumbersWidget()).thenReturn("1");
+        when(jdyRecordFields.getErrorMessageWidget()).thenReturn("1");
+
+        when(jdyService.createReportRecord(any(JdyRecordDTO.class))).thenReturn("{\"data\":{\"_id\":\"1\"}}");
+    }
+
     @Test
     public void testProcessSmsRequestHappyPath() throws IOException, ClientException {
         Long recordId = 1L;
@@ -69,6 +94,7 @@ public class SmsRequestServiceTest {
         when(aliyunSMSAdapter.sendMessage(any(SmsRequestDTO.class))).thenReturn(sendSmsResponse);
         when(sendSmsResponse.getCode()).thenReturn("OK");
         when(sendSmsResponse.getBizId()).thenReturn(bizId);
+
         ArgumentCaptor<SmsRequestDTO> smsRequestDTOArgumentCaptor = ArgumentCaptor.forClass(SmsRequestDTO.class);
         ArgumentCaptor<SmsRequestBO> smsRequestBOArgumentCaptor = ArgumentCaptor.forClass(SmsRequestBO.class);
         doNothing().when(smsMessageService).saveSmsMessages(any(SmsRequestBO.class));
