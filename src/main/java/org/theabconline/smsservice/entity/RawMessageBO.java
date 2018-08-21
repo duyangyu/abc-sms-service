@@ -12,6 +12,7 @@ public class RawMessageBO {
     @Column(name = "id")
     private Long id;
 
+    @Lob
     @Column(name = "message")
     private String message;
 
