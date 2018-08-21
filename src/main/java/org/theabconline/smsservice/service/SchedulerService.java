@@ -46,14 +46,14 @@ public class SchedulerService {
     }
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelayString = "${process.fixedDelay:5000}")
-    public void updateStatusAfterEightHours() {
-        Long millis = 1000L * 60 * 60 * 8;
+    public void updateStatusAfterSevenHours() {
+        Long millis = 1000L * 60 * 60 * 7;
         smsRequestService.updateRequestStatus(maxCount, millis);
     }
 
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelayString = "${process.fixedDelay:5000}")
-    public void updateStatusAfterOneDay() {
-        Long millis = 1000L * 60 * 60 * 24;
+    public void updateStatusAfterSixteenHours() {
+        Long millis = 1000L * 60 * 60 * 16;
         smsRequestService.updateRequestStatus(maxCount, millis);
     }
 }
