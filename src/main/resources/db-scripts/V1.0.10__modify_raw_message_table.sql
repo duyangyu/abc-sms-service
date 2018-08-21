@@ -1,0 +1,1 @@
+ALTER TABLE raw_message MODIFY COLUMN message TEXT;
