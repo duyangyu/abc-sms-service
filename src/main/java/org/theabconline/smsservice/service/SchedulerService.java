@@ -14,7 +14,7 @@ public class SchedulerService {
 
     private final SmsRequestService smsRequestService;
 
-    @Value("${process.maxCount:3}")
+    @Value("${process.maxCount:4}")
     Integer maxCount;
 
     @Autowired
@@ -42,6 +42,12 @@ public class SchedulerService {
     @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelayString = "${process.fixedDelay:5000}")
     public void updateStatusAfterOneHour() {
         Long millis = 1000L * 60 * 60;
+        smsRequestService.updateRequestStatus(maxCount, millis);
+    }
+
+    @Scheduled(fixedDelayString = "${process.fixedDelay:5000}", initialDelayString = "${process.fixedDelay:5000}")
+    public void updateStatusAfterEightHours() {
+        Long millis = 1000L * 60 * 60 * 8;
         smsRequestService.updateRequestStatus(maxCount, millis);
     }
 
