@@ -1,5 +1,8 @@
 package org.theabconline.smsservice.service;
 
+import com.google.common.base.Throwables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -9,6 +12,8 @@ import org.theabconline.smsservice.dto.JdyRecordDTO;
 
 @Service
 public class JdyService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdyService.class);
 
     static final String BEARER = "Bearer ";
     static final String AUTHORIZATION_HEADER = "Authorization";
@@ -52,10 +57,12 @@ public class JdyService {
         try {
             response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
         } catch (Exception e) {
+            LOGGER.error(Throwables.getStackTraceAsString(e));
             return null;
         }
         if (!response.getStatusCode().is2xxSuccessful()) {
             errorHandlingService.handleJdyFailure(response.getBody());
+            LOGGER.error("Http status: {}, response body: {}", response.getStatusCode(), response.getBody());
             return null;
         }
 
