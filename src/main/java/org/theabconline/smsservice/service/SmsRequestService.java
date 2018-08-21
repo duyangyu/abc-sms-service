@@ -179,7 +179,7 @@ public class SmsRequestService {
 
         String response = jdyService.updateRecordMessage(jdyRecordDTO);
         if (response == null) {
-            errorHandlingService.handleJdyFailure(getErrorMessage("Possible cause: report data deleted", data));
+            errorHandlingService.handleJdyFailure(getErrorMessage("Possible cause: report data deleted, dataId: " + dataId, data));
         }
 
         return response;
