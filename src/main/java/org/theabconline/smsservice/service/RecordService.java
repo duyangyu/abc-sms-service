@@ -86,6 +86,9 @@ public class RecordService {
             entryId = parsingService.getEntryId(rawMessageBO.getMessage());
             dataId = parsingService.getDataId(rawMessageBO.getMessage());
             formMetadata = parsingService.getFormMetadata(rawMessageBO.getMessage());
+            if (formMetadata == null) {
+                return;
+            }
         } catch (Exception e) {
             parsingException = e;
         }
