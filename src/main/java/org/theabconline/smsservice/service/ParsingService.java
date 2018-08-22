@@ -3,6 +3,7 @@ package org.theabconline.smsservice.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,11 @@ public class ParsingService {
     FormMetadata getFormMetadata(String message) throws IOException {
         FormBO formBO = getFormBO(message);
         String metadataWidget = formBO.getMetadataWidget();
-        return mapper.readValue(getFieldValue(message, metadataWidget), FormMetadata.class);
+        String fieldValue = getFieldValue(message, metadataWidget);
+        if (Strings.isNullOrEmpty(fieldValue)) {
+            return null;
+        }
+        return mapper.readValue(fieldValue, FormMetadata.class);
     }
 
     String getPhoneNumbers(String message, String phoneNumbersWidget) throws IOException {
