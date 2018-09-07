@@ -155,7 +155,7 @@ public class SmsRequestService {
 
         try {
             dataId = parsingService.getFieldValue(response, "_id");
-        } catch (IOException e) {
+        } catch (Exception e) {
             errorHandlingService.handleJdyFailure(getErrorMessage(response, data));
         }
 
