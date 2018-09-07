@@ -61,10 +61,10 @@ public class RecordService {
     public void processRawMessages() {
         List<RawMessageBO> unprocessedMessages = rawMessageRepository.getRawMessageBOSByIsProcessedFalse();
         for (RawMessageBO unprocessedMessage : unprocessedMessages) {
-            processRawMessage(unprocessedMessage);
             unprocessedMessage.setProcessed(true);
+            rawMessageRepository.save(unprocessedMessage);
+            processRawMessage(unprocessedMessage);
         }
-        rawMessageRepository.save(unprocessedMessages);
     }
 
     @Transactional

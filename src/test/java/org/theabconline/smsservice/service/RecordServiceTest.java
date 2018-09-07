@@ -85,16 +85,15 @@ public class RecordServiceTest {
         String message = "message";
         RawMessageBO rawMessageBO = createRawMessageBO(message);
         RecordService fixtureSpy = spy(fixture);
-        ArgumentCaptor<List> rawMessageBOListArgumentCaptor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<RawMessageBO> rawMessageBOArgumentCaptor = ArgumentCaptor.forClass(RawMessageBO.class);
         when(rawMessageRepository.getRawMessageBOSByIsProcessedFalse()).thenReturn(Lists.newArrayList(rawMessageBO));
         doNothing().when(fixtureSpy).processRawMessage(eq(rawMessageBO));
 
         fixtureSpy.processRawMessages();
 
         verify(fixtureSpy, times(1)).processRawMessage(eq(rawMessageBO));
-        verify(rawMessageRepository, times(1)).save(rawMessageBOListArgumentCaptor.capture());
-        assertEquals(1, rawMessageBOListArgumentCaptor.getValue().size());
-        RawMessageBO updatedRawMessageBO = (RawMessageBO) rawMessageBOListArgumentCaptor.getValue().get(0);
+        verify(rawMessageRepository, times(1)).save(rawMessageBOArgumentCaptor.capture());
+        RawMessageBO updatedRawMessageBO = rawMessageBOArgumentCaptor.getValue();
         assertEquals(message, updatedRawMessageBO.getMessage());
         assertTrue(updatedRawMessageBO.getProcessed());
     }
