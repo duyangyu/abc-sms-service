@@ -57,7 +57,7 @@ public class JdyService {
         try {
             response = restTemplate.exchange(url, HttpMethod.POST, httpEntity, String.class);
         } catch (Exception e) {
-            LOGGER.error(Throwables.getStackTraceAsString(e));
+            LOGGER.error(e.getMessage(), Throwables.getStackTraceAsString(e));
             return null;
         }
         if (!response.getStatusCode().is2xxSuccessful()) {
